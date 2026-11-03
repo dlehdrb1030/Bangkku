@@ -135,6 +135,25 @@ namespace Bangkku.FloorPlan
         }
 
         /// <summary>
+        /// 문 자리의 벽 두께만큼 바닥 (문턱) 다각형 (mm). 바닥 다각형은 벽 안쪽 면까지라서 이것이 없으면 문 아래가 비어 보인다.
+        /// </summary>
+        public static List<int[]> ComputeThresholdPolygon(WallData wall, OpeningData door, int defaultThicknessMm)
+        {
+            double dx = wall.End[0] - wall.Start[0];
+            double dy = wall.End[1] - wall.Start[1];
+            double length = System.Math.Sqrt(dx * dx + dy * dy);
+            double ux = dx / length, uy = dy / length;
+            double half = wall.ThicknessOr(defaultThicknessMm) * 0.5;
+            double nx = -uy * half, ny = ux * half;
+
+            double ax = wall.Start[0] + ux * door.Offset, ay = wall.Start[1] + uy * door.Offset;
+            double bx = wall.Start[0] + ux * (door.Offset + door.Width), by = wall.Start[1] + uy * (door.Offset + door.Width);
+
+            int[] Point(double x, double y) => new[] { (int)System.Math.Round(x), (int)System.Math.Round(y) };
+            return new List<int[]> { Point(ax + nx, ay + ny), Point(bx + nx, by + ny), Point(bx - nx, by - ny), Point(ax - nx, ay - ny) };
+        }
+
+        /// <summary>
         /// 조각 하나를 큐브(MeshRenderer + BoxCollider, Layer = Wall)로 만든다.
         /// 유리판도 Layer = Wall 이다 (가구가 창을 뚫고 놓이지 않도록).
         /// </summary>
