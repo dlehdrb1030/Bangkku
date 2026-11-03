@@ -1,0 +1,18 @@
+# ===== Git LFS (00_방꾸_전체개발계획.md 9장) =====
+*.ply filter=lfs diff=lfs merge=lfs -text
+*.splat filter=lfs diff=lfs merge=lfs -text
+*.glb filter=lfs diff=lfs merge=lfs -text
+*.fbx filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.psd filter=lfs diff=lfs merge=lfs -text
+
+# ===== Unity YAML (03_방꾸_Unity_프로젝트설정.md 6.1) =====
+# unityyamlmerge 드라이버를 등록하지 않으면 Git 기본 병합을 쓴다. 등록 방법은 README 참고.
+*.unity merge=unityyamlmerge eol=lf
+*.prefab merge=unityyamlmerge eol=lf
+*.asset merge=unityyamlmerge eol=lf
+*.meta merge=unityyamlmerge eol=lf
+*.cs text eol=lf
+*.json text eol=lf
+*.md text eol=lf
