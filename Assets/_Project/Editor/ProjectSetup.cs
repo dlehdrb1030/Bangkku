@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Bangkku.Core;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEngine;
@@ -33,13 +34,13 @@ namespace Bangkku.EditorTools
         const int InputHandlerNew = 1;
         const int InputHandlerBoth = 2;
 
-        // 5.5 Tags and Layers
+        // 5.5 Tags and Layers. 번호와 이름은 Core/Layers.cs 상수를 따른다.
         static readonly (int index, string name)[] RequiredLayers =
         {
-            (6, "Wall"),
-            (7, "Floor"),
-            (8, "Furniture"),
-            (9, "Fixture"),
+            (Layers.Wall, nameof(Layers.Wall)),
+            (Layers.Floor, nameof(Layers.Floor)),
+            (Layers.Furniture, nameof(Layers.Furniture)),
+            (Layers.Fixture, nameof(Layers.Fixture)),
         };
 
         [MenuItem(MenuPath)]
