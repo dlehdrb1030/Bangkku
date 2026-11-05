@@ -276,12 +276,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Bangkku.FloorPlan.FloorPlanBuilder
   FloorPlanJson: {fileID: 4900000, guid: 708c89b9e6364493ca22de36af8c3ddf, type: 3}
-  WallMaterial: {fileID: 0}
-  GlassMaterial: {fileID: 0}
-  FloorMaterial: {fileID: 0}
-  TileMaterial: {fileID: 0}
-  CeilingMaterial: {fileID: 0}
-  FixtureMaterial: {fileID: 0}
+  WallMaterial: {fileID: 2100000, guid: c34c1075756e941a3ad23fc38dc3316e, type: 2}
+  GlassMaterial: {fileID: 2100000, guid: 12ad3454a74394813a2cb89ec15141f5, type: 2}
+  FloorMaterial: {fileID: 2100000, guid: e6f50764226284e0eba2cec0609751a8, type: 2}
+  TileMaterial: {fileID: 2100000, guid: 76ee60ccce35d490d9e6856cde176c04, type: 2}
+  CeilingMaterial: {fileID: 2100000, guid: 3c17e635396ae4c99b617fd3a71e61e5, type: 2}
+  FixtureMaterial: {fileID: 2100000, guid: e0439673026a64c58b54754fda629e41, type: 2}
 --- !u!4 &1114946944
 Transform:
   m_ObjectHideFlags: 0
