@@ -55,7 +55,7 @@ Project Settings는 저장소에 커밋되어 있으므로 clone한 사람은 �
 
 ## Git
 
-- 브랜치: `main`(금요일에만 병합) ← `dev`(통합) ← `feature/<담당>-<기능>`
+- 브랜치: `main`(안정된 버전만 병합) ← `dev`(통합) ← `feature/<담당>-<기능>`
 - `.meta` 파일은 항상 함께 커밋한다.
 - 큰 파일(`.ply`, `.splat`, `.glb`, `.fbx`, `.png`, `.jpg`, `.psd`)은 Git LFS로 관리한다. 원본 영상·원본 `.ply`는 구글 드라이브 `방꾸/raw/`에 둔다.
 
