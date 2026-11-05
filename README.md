@@ -45,6 +45,8 @@ Project Settings는 저장소에 커밋되어 있으므로 clone한 사람은 �
 | [docs/01_방꾸_팀장_이동규.md](docs/01_방꾸_팀장_이동규.md) | 팀장 가이드 |
 | [docs/02_방꾸_팀원_김효진.md](docs/02_방꾸_팀원_김효진.md) | 팀원 가이드 |
 | [docs/03_방꾸_Unity_프로젝트설정.md](docs/03_방꾸_Unity_프로젝트설정.md) | Unity 버전, 패키지, Project Settings |
+| [docs/04_방꾸_공용코드_안내.md](docs/04_방꾸_공용코드_안내.md) | 공용 코드(Core·Data) 사용법, 팀원 공지, 변경 기록 |
+| [docs/05_방꾸_진행현황.md](docs/05_방꾸_진행현황.md) | 진행 현황, 리뷰·결정 대기, 다음 작업 순서 |
 | [CLAUDE.md](CLAUDE.md) | Claude Code 작업 규칙 |
 
 ## 폴더
