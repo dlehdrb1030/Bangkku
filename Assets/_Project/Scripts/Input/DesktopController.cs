@@ -1,4 +1,3 @@
-using System;
 using Bangkku.Core;
 using Bangkku.Placement;
 using UnityEngine;
@@ -43,18 +42,15 @@ namespace Bangkku.Input
         public Vector2 StartPitchYaw = new(90f, 0f);
 
         [Header("회전")]
-        public float CoarseRotationDegrees = 90f;
-        public float FineRotationDegrees = 15f;
+        public float CoarseRotationDegrees = RotationSnap.CoarseDegrees;
+        public float FineRotationDegrees = RotationSnap.FineDegrees;
 
         [Header("모드")]
         [Tooltip("켜면 VR 기기가 동작 중일 때 이 컴포넌트를 끈다")]
         public bool DisableWhenXRActive = true;
 
-        /// <summary>지금 선택한 가구. 없으면 null</summary>
-        public FurnitureItem Selected { get; private set; }
-
-        /// <summary>선택이 바뀔 때 (해제는 null)</summary>
-        public event Action<FurnitureItem> SelectionChanged;
+        /// <summary>지금 선택한 가구. 없으면 null. 선택은 SelectionManager 가 들고 있어서 VR 과 공유한다.</summary>
+        public FurnitureItem Selected => SelectionManager.Instance.Selected;
 
         float _pitch;
         float _yaw;
@@ -160,7 +156,7 @@ namespace Bangkku.Input
                 if (Physics.Raycast(ray, out var hit, 100f, Layers.FurnitureMask))
                 {
                     var item = hit.collider.GetComponentInParent<FurnitureItem>();
-                    Select(item);
+                    SelectionManager.Instance.Select(item);
                     var grab = Vector3.zero;
                     _dragging = item != null && TryGetFloorPoint(ray, out grab);
                     if (_dragging)
@@ -171,7 +167,7 @@ namespace Bangkku.Input
                 }
                 else
                 {
-                    Select(null);
+                    SelectionManager.Instance.Deselect();
                     _dragging = false;
                 }
             }
@@ -179,17 +175,10 @@ namespace Bangkku.Input
             if (_dragging && mouse.leftButton.isPressed && Selected != null)
             {
                 if (TryGetFloorPoint(ray, out var point))
-                    Selected.transform.position = DragPosition(point, _grabOffset);
+                    SelectionManager.Instance.MoveSelectedTo(DragPosition(point, _grabOffset));
             }
 
             if (mouse.leftButton.wasReleasedThisFrame) _dragging = false;
-        }
-
-        void Select(FurnitureItem item)
-        {
-            if (Selected == item) return;
-            Selected = item;
-            SelectionChanged?.Invoke(item);
         }
 
         void HandleRotation(Keyboard keyboard)
@@ -204,21 +193,10 @@ namespace Bangkku.Input
             if (keyboard.eKey.wasPressedThisFrame) delta += step;
             if (delta == 0f) return;
 
-            var t = Selected.transform;
-            t.rotation = Quaternion.Euler(0f, RotateYaw(t.eulerAngles.y, delta), 0f);
+            SelectionManager.Instance.RotateSelected(delta);
         }
 
         // ───────────── 계산 (테스트하기 쉽게 정적 함수로 분리) ─────────────
-
-        /// <summary>
-        /// 현재 Y 회전에 delta 를 더하고 0 이상 360 미만의 정수 도로 맞춘다.
-        /// 90° 단위와 15° 단위를 오가도 소수점 오차가 쌓이지 않는다.
-        /// </summary>
-        public static float RotateYaw(float currentYawDegrees, float deltaDegrees)
-        {
-            float yaw = Mathf.Repeat(Mathf.Round(currentYawDegrees + deltaDegrees), 360f);
-            return yaw >= 360f ? 0f : yaw;
-        }
 
         /// <summary>레이와 높이 planeY 의 수평면이 만나는 점. 레이가 평면과 평행하거나 뒤쪽이면 false</summary>
         public static bool TryGetPlanePoint(Ray ray, float planeY, out Vector3 point)
