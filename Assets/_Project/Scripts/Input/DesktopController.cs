@@ -9,7 +9,7 @@ namespace Bangkku.Input
     /// <summary>
     /// 데스크톱 모드 (팀장 가이드 4장): VR 장비 없이 마우스와 키보드로 가구를 배치한다.
     /// - 좌클릭: 가구 선택 (Layer = Furniture 레이캐스트), 빈 곳 클릭은 선택 해제
-    /// - 좌클릭 드래그: 바닥 평면(y = 0)과 마우스 레이의 교점으로 이동 (잡은 지점 그대로 따라옴)
+    /// - 좌클릭 드래그: 바닥 평면(y = 0)과 마우스 레이의 교점으로 이동 (잡은 지점 그대로 따라옴). 10mm 격자·벽 스냅, Alt 를 누르면 스냅 없이
     /// - Q / E: 선택한 가구를 Y축으로 -90° / +90° 회전, Shift 를 누르면 15°
     /// - 우클릭을 누른 채: 마우스로 시점 회전, W A S D 로 이동 (Shift 로 빠르게)
     /// - 마우스 휠: 보는 방향으로 확대·축소
@@ -103,8 +103,9 @@ namespace Bangkku.Input
             }
             else
             {
-                HandleSelectionAndDrag(mouse);
-                HandleRotation(keyboard);
+                bool snap = !IsFreeMode(keyboard);
+                HandleSelectionAndDrag(mouse, snap);
+                HandleRotation(keyboard, snap);
             }
 
             Zoom(mouse.scroll.ReadValue().y);
@@ -147,7 +148,10 @@ namespace Bangkku.Input
 
         // ───────────── 선택·이동 ─────────────
 
-        void HandleSelectionAndDrag(Mouse mouse)
+        /// <summary>Alt(맥은 Option)를 누르는 동안은 스냅 없이 자유롭게 움직인다</summary>
+        static bool IsFreeMode(Keyboard keyboard) => keyboard.leftAltKey.isPressed || keyboard.rightAltKey.isPressed;
+
+        void HandleSelectionAndDrag(Mouse mouse, bool snap)
         {
             var ray = Camera.ScreenPointToRay(mouse.position.ReadValue());
 
@@ -175,13 +179,13 @@ namespace Bangkku.Input
             if (_dragging && mouse.leftButton.isPressed && Selected != null)
             {
                 if (TryGetFloorPoint(ray, out var point))
-                    SelectionManager.Instance.MoveSelectedTo(DragPosition(point, _grabOffset));
+                    SelectionManager.Instance.MoveSelectedTo(DragPosition(point, _grabOffset), snap);
             }
 
             if (mouse.leftButton.wasReleasedThisFrame) _dragging = false;
         }
 
-        void HandleRotation(Keyboard keyboard)
+        void HandleRotation(Keyboard keyboard, bool snap)
         {
             if (Selected == null) return;
 
@@ -193,7 +197,7 @@ namespace Bangkku.Input
             if (keyboard.eKey.wasPressedThisFrame) delta += step;
             if (delta == 0f) return;
 
-            SelectionManager.Instance.RotateSelected(delta);
+            SelectionManager.Instance.RotateSelected(delta, snap);
         }
 
         // ───────────── 계산 (테스트하기 쉽게 정적 함수로 분리) ─────────────
@@ -237,7 +241,7 @@ namespace Bangkku.Input
 
             GUI.Label(new Rect(12, 8, 900, 26), selected, _style);
             GUI.Label(new Rect(12, 32, 900, 26),
-                "좌클릭: 선택·드래그   Q/E: 90° 회전 (Shift: 15°)   우클릭+마우스: 시점   우클릭+WASD: 이동   휠: 확대", _style);
+                "좌클릭: 선택·드래그 (Alt: 스냅 끄기)   Q/E: 90° 회전 (Shift: 15°)   우클릭+마우스: 시점   우클릭+WASD: 이동   휠: 확대", _style);
         }
     }
 }
