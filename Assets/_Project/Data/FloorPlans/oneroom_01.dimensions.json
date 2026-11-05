@@ -1,0 +1,20 @@
+{
+  "floorplan": "oneroom_01",
+  "toleranceMm": 20,
+  "dimensions": [
+    { "id": "x_entrance_wall", "label": "도면 가로 750: 왼쪽 벽 ~ 현관 왼쪽 벽", "from": { "wall": "w3" }, "to": { "wall": "w5" }, "expectedMm": 750 },
+    { "id": "x_entrance", "label": "도면 가로 1730: 현관 왼쪽 벽 ~ 욕실 위쪽 벽", "from": { "wall": "w5" }, "to": { "wall": "w7" }, "expectedMm": 1730 },
+    { "id": "x_bath_top", "label": "도면 가로 1120: 욕실 위쪽 벽 ~ 오른쪽 벽", "from": { "wall": "w7" }, "to": { "wall": "w1" }, "expectedMm": 1120 },
+    { "id": "x_total", "label": "도면 가로 3600: 왼쪽 벽 ~ 오른쪽 벽 (전체)", "from": { "wall": "w3" }, "to": { "wall": "w1" }, "expectedMm": 3600 },
+
+    { "id": "y_entrance", "label": "도면 세로 640: 현관 위쪽 벽 ~ 욕실 위 수납 벽", "from": { "wall": "w0" }, "to": { "wall": "w8" }, "expectedMm": 640 },
+    { "id": "y_bath", "label": "도면 세로 2100: 욕실 위 수납 벽 ~ 욕실 아래 벽", "from": { "wall": "w8" }, "to": { "wall": "w11" }, "expectedMm": 2100 },
+    { "id": "y_living", "label": "도면 세로 3020: 욕실 아래 벽 ~ 거실·발코니 사이 벽", "from": { "wall": "w11" }, "to": { "wall": "w6" }, "expectedMm": 3020 },
+    { "id": "y_balcony", "label": "도면 세로 1100: 거실·발코니 사이 벽 중심선 ~ 발코니 바깥면", "from": { "wall": "w6" }, "to": { "wall": "w2", "at": "far" }, "expectedMm": 1100 },
+    { "id": "y_total", "label": "도면 세로 6860: 현관 위쪽 벽 중심선 ~ 발코니 바깥면 (전체)", "from": { "wall": "w0" }, "to": { "wall": "w2", "at": "far" }, "expectedMm": 6860 },
+
+    { "id": "living_clear_width", "label": "참고: 거실 안쪽 가로 (실측하면 expectedMm 에 적기)", "from": { "wall": "w3", "at": "near" }, "to": { "wall": "w1", "at": "near" } },
+    { "id": "living_clear_depth", "label": "참고: 거실 안쪽 세로 (욕실 아래 벽 ~ 발코니 사이 벽, 실측하면 expectedMm 에 적기)", "from": { "wall": "w11", "at": "near" }, "to": { "wall": "w6", "at": "near" } },
+    { "id": "balcony_clear_depth", "label": "참고: 발코니 안쪽 세로 (실측하면 expectedMm 에 적기)", "from": { "wall": "w6", "at": "near" }, "to": { "wall": "w2", "at": "near" } }
+  ]
+}
