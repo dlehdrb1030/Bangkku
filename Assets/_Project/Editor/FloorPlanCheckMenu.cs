@@ -15,13 +15,16 @@ namespace Bangkku.EditorTools
         const string MenuPath = "Tools/방꾸/평면도 JSON 검사";
         const string FloorPlanFolder = "Assets/_Project/Data/FloorPlans";
 
+        /// <summary>평면도 JSON 이다. 치수 기준 파일(*.dimensions.json)은 형식이 달라서 뺀다</summary>
+        static bool IsFloorPlanJson(string path) => path.EndsWith(".json") && !path.EndsWith(".dimensions.json");
+
         [MenuItem(MenuPath)]
         static void Check()
         {
             var targets = new List<TextAsset>();
             foreach (var asset in Selection.GetFiltered<TextAsset>(SelectionMode.Assets))
             {
-                if (AssetDatabase.GetAssetPath(asset).EndsWith(".json")) targets.Add(asset);
+                if (IsFloorPlanJson(AssetDatabase.GetAssetPath(asset))) targets.Add(asset);
             }
 
             if (targets.Count == 0)
@@ -29,7 +32,7 @@ namespace Bangkku.EditorTools
                 foreach (string guid in AssetDatabase.FindAssets("t:TextAsset", new[] { FloorPlanFolder }))
                 {
                     string path = AssetDatabase.GUIDToAssetPath(guid);
-                    if (path.EndsWith(".json")) targets.Add(AssetDatabase.LoadAssetAtPath<TextAsset>(path));
+                    if (IsFloorPlanJson(path)) targets.Add(AssetDatabase.LoadAssetAtPath<TextAsset>(path));
                 }
             }
 
