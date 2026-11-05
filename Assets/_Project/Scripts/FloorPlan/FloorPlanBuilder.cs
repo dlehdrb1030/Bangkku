@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Bangkku.Core;
 using UnityEngine;
@@ -38,6 +39,9 @@ namespace Bangkku.FloorPlan
 
         [Tooltip("고정설비 박스 재질. 비워 두면 연한 베이지")]
         public Material FixtureMaterial;
+
+        /// <summary>평면도를 (다시) 만들 때마다 끝에서 불린다. 바닥에 텔레포트 영역을 붙이는 등 생성물에 기능을 더하는 용도 (XRRigSetup)</summary>
+        public event Action<FloorPlanBuilder> Built;
 
         /// <summary>마지막으로 읽은 평면도. 생성 전이나 실패하면 null</summary>
         public FloorPlanData Data { get; private set; }
@@ -86,6 +90,7 @@ namespace Bangkku.FloorPlan
 
             Debug.Log($"[방꾸] 평면도 {Data.Name} 생성: 벽 조각 {wallCount}개, 유리 {glassCount}개 (개구부 {Data.Openings.Count}개), " +
                       $"바닥·천장 {floorCount}/{Data.Floors.Count}개, 고정설비 {fixtureCount}개", this);
+            Built?.Invoke(this);
             return true;
         }
 
