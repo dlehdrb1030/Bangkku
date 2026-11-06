@@ -16,7 +16,7 @@ namespace Bangkku.Input
     /// 2. 레이 인터랙터가 바닥·벽·가구·고정설비 Layer 에 맞도록 Raycast Mask 에 더한다.
     ///    (Starter Assets 의 기본 마스크는 Default, UI 뿐이라 우리 Layer 를 통과해 버린다)
     ///    손의 Near-Far Interactor 는 원거리 레이에 같은 Layer 를, 근거리 구에 Furniture 를 더한다 (가구 잡기).
-    /// 3. 처음 한 번 XR Origin 을 시작 위치(평면도 좌표 mm)에 놓고 방 안쪽을 보게 한다.
+    /// 3. 처음 한 번 XR Origin 을 현관문 안쪽에 놓고 방 안쪽을 보게 한다 (평면도에서 자동으로 찾음).
     /// 4. VR 기기 없이(XR Device Simulator) 실행하면 눈높이를 서 있는 성인 높이(기본 1.6m)로 맞춘다.
     /// 씬 오브젝트 하나에 붙이고 Floor Plan 과 Origin 을 지정한다. 비워 두면 씬에서 찾는다.
     /// </summary>
@@ -34,10 +34,17 @@ namespace Bangkku.Input
         [Tooltip("켜면 방을 만든 뒤 처음 한 번 XR Origin 을 아래 위치로 옮긴다")]
         public bool MoveToStart = true;
 
-        [Tooltip("평면도 좌표 (mm). 기본값은 현관 가운데 (oneroom_01)")]
+        [Tooltip("켜면 평면도에서 현관문(한쪽에만 바닥이 있는 문)을 찾아 그 안쪽에서 방을 바라보며 시작한다. 평면도를 바꿔도 따로 맞출 필요가 없다. " +
+                 "현관문을 못 찾으면 아래 Start Plan Mm / Start Yaw Degrees 를 쓴다")]
+        public bool StartAtEntrance = true;
+
+        [Tooltip("현관문에서 안쪽으로 들어간 거리 (mm)")]
+        public float EntranceInsideMm = 600f;
+
+        [Tooltip("Start At Entrance 를 끄거나 현관문을 못 찾았을 때 쓰는 평면도 좌표 (mm)")]
         public Vector2 StartPlanMm = new(1400f, 600f);
 
-        [Tooltip("바라보는 방향 (도). 180 = 평면도 아래쪽(= Unity -Z), 현관에서 방 안쪽")]
+        [Tooltip("Start At Entrance 를 끄거나 현관문을 못 찾았을 때 바라보는 방향 (도). 180 = 평면도 아래쪽(= Unity -Z)")]
         public float StartYawDegrees = 180f;
 
         [Header("시뮬레이터 눈높이")]
@@ -178,19 +185,32 @@ namespace Bangkku.Input
 
         void MoveOriginToStart()
         {
-            var position = Units.PlanToWorld(StartPlanMm.x, StartPlanMm.y);
+            var planMm = StartPlanMm;
+            float yaw = StartYawDegrees;
+            if (StartAtEntrance)
+            {
+                if (FloorPlanSpots.TryGetEntrance(FloorPlan.Data, EntranceInsideMm, out var entrance, out float entranceYaw))
+                {
+                    planMm = entrance;
+                    yaw = entranceYaw;
+                }
+                else
+                    Debug.LogWarning($"[방꾸] XRRigSetup: 평면도에서 현관문(한쪽에만 바닥이 있는 문)을 찾지 못해 Start Plan Mm {StartPlanMm} 에서 시작합니다.", this);
+            }
+
+            var position = Units.PlanToWorld(planMm.x, planMm.y);
 
             // 새로 만든 바닥 콜라이더를 바로 검사할 수 있게 하고, 시작 위치 아래에 바닥이 있는지 확인한다
             Physics.SyncTransforms();
             if (Physics.Raycast(position + Vector3.up * 2f, Vector3.down, out var hit, 5f, Layers.FloorMask))
                 position.y = hit.point.y;
             else
-                Debug.LogWarning($"[방꾸] XRRigSetup: 시작 위치 {StartPlanMm} mm 아래에 바닥이 없습니다. 평면도 안쪽 좌표로 바꾸세요.", this);
+                Debug.LogWarning($"[방꾸] XRRigSetup: 시작 위치 {planMm} mm 아래에 바닥이 없습니다. 평면도 안쪽 좌표로 바꾸세요.", this);
 
             // CharacterController 가 켜져 있으면 transform 을 바로 옮겨도 이전 위치로 되돌아간다
             var controller = Origin.GetComponent<CharacterController>();
             if (controller != null) controller.enabled = false;
-            Origin.SetPositionAndRotation(position, Quaternion.Euler(0f, StartYawDegrees, 0f));
+            Origin.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
             if (controller != null) controller.enabled = true;
 
             _moved = true;
