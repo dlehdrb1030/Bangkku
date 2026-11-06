@@ -1,6 +1,8 @@
 using Bangkku.Core;
 using Bangkku.FloorPlan;
+using Unity.XR.CoreUtils;
 using UnityEngine;
+using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.Interactors.Casters;
@@ -15,6 +17,7 @@ namespace Bangkku.Input
     ///    (Starter Assets 의 기본 마스크는 Default, UI 뿐이라 우리 Layer 를 통과해 버린다)
     ///    손의 Near-Far Interactor 는 원거리 레이에 같은 Layer 를, 근거리 구에 Furniture 를 더한다 (가구 잡기).
     /// 3. 처음 한 번 XR Origin 을 시작 위치(평면도 좌표 mm)에 놓고 방 안쪽을 보게 한다.
+    /// 4. VR 기기 없이(XR Device Simulator) 실행하면 눈높이를 서 있는 성인 높이(기본 1.6m)로 맞춘다.
     /// 씬 오브젝트 하나에 붙이고 Floor Plan 과 Origin 을 지정한다. 비워 두면 씬에서 찾는다.
     /// </summary>
     public class XRRigSetup : MonoBehaviour
@@ -37,6 +40,14 @@ namespace Bangkku.Input
         [Tooltip("바라보는 방향 (도). 180 = 평면도 아래쪽(= Unity -Z), 현관에서 방 안쪽")]
         public float StartYawDegrees = 180f;
 
+        [Header("시뮬레이터 눈높이")]
+        [Tooltip("켜면 VR 기기 없이(XR Device Simulator) 실행할 때 카메라를 아래 눈높이에 둔다. 실제 헤드셋은 머리 높이를 그대로 쓰므로 적용하지 않는다")]
+        public bool ApplySimulatorEyeHeight = true;
+
+        [Tooltip("바닥에서 눈까지 (m). 기본값 1.6 = 한국 성인 남성 평균 키(약 172cm)의 눈높이. " +
+                 "Starter Assets 기본값은 1.36 이라 앉은 눈높이처럼 가구가 크게 보인다")]
+        public float SimulatorEyeHeightMeters = 1.6f;
+
         bool _moved;
 
         void OnEnable()
@@ -52,6 +63,8 @@ namespace Bangkku.Input
 
         void Start()
         {
+            if (ApplySimulatorEyeHeight && ResolveOrigin()) SetSimulatorEyeHeight();
+
             if (FloorPlan == null)
             {
                 Debug.LogWarning("[방꾸] XRRigSetup: 씬에 FloorPlanBuilder 가 없습니다.", this);
@@ -84,6 +97,32 @@ namespace Bangkku.Input
 
             Origin = xrOrigin.transform;
             return true;
+        }
+
+        /// <summary>
+        /// VR 기기가 없을 때 카메라 높이를 SimulatorEyeHeightMeters 로 맞춘다.
+        /// 기기가 없으면 XR Origin 이 Tracking Origin 을 정하지 못해 Camera Offset 의 프리팹 높이(1.36m)를 그대로 쓰고,
+        /// 시뮬레이터의 머리(HMD)는 Camera Offset 기준 높이 0 에서 시작하므로 Camera Offset 높이가 곧 눈높이다.
+        /// 실제 헤드셋이 켜져 있으면 XR Origin 이 바닥 기준으로 맞추므로 건드리지 않는다.
+        /// </summary>
+        void SetSimulatorEyeHeight()
+        {
+            if (XRSettings.isDeviceActive) return;
+
+            var xrOrigin = Origin.GetComponent<XROrigin>();
+            var offset = xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null
+                ? xrOrigin.CameraFloorOffsetObject.transform
+                : null;
+            if (offset == null)
+            {
+                Debug.LogWarning("[방꾸] XRRigSetup: XR Origin 의 Camera Floor Offset Object 가 없어 시뮬레이터 눈높이를 맞추지 못했습니다.", this);
+                return;
+            }
+
+            var position = offset.localPosition;
+            position.y = SimulatorEyeHeightMeters;
+            offset.localPosition = position;
+            Debug.Log($"[방꾸] VR 기기가 없어 시뮬레이터 눈높이를 {SimulatorEyeHeightMeters:0.00}m 로 맞췄습니다.", this);
         }
 
         void AddRayLayers()
