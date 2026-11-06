@@ -1,4 +1,5 @@
 using Bangkku.Core;
+using Bangkku.FloorPlan;
 using Bangkku.Placement;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -35,7 +36,14 @@ namespace Bangkku.Input
         public float ZoomStepMeters = 0.5f;
 
         [Header("시작 시점")]
-        [Tooltip("월드 좌표 (m). 기본값은 oneroom_01 위쪽")]
+        [Tooltip("켜면 씬의 평면도 전체가 화면에 들어오도록 바로 위에서 내려다보는 위치를 계산한다. 평면도를 바꿔도 따로 맞출 필요가 없다. " +
+                 "평면도가 없으면 아래 Start Position 을 쓴다")]
+        public bool FrameFloorPlan = true;
+
+        [Tooltip("평면도 둘레에 남길 여백 배율 (1 = 꽉 차게)")]
+        public float FrameMargin = 1.1f;
+
+        [Tooltip("Frame Floor Plan 을 끄거나 평면도가 없을 때 쓰는 월드 좌표 (m)")]
         public Vector3 StartPosition = new(1.8f, 9f, -3.4f);
 
         [Tooltip("x = 아래로 숙이는 각도 (90 = 바로 아래), y = 좌우 방향. 위에서 볼 때 화면 위쪽이 평면도 위쪽이 된다")]
@@ -76,8 +84,29 @@ namespace Bangkku.Input
             if (Camera == null) return;
             _pitch = StartPitchYaw.x;
             _yaw = StartPitchYaw.y;
-            Camera.transform.position = StartPosition;
+            var start = StartPosition;
+            if (FrameFloorPlan && TryFramePosition(out var framed))
+            {
+                start = framed;
+                _pitch = 90f;
+                _yaw = 0f;
+            }
+
+            Camera.transform.position = start;
             Camera.transform.rotation = Quaternion.Euler(_pitch, _yaw, 0f);
+        }
+
+        /// <summary>씬의 평면도 전체가 보이는 바로 위 위치. 평면도가 없거나 아직 만들어지지 않았으면 false</summary>
+        bool TryFramePosition(out Vector3 position)
+        {
+            position = default;
+            var builder = FindFirstObjectByType<FloorPlanBuilder>();
+            var plan = builder != null ? builder.Data : null;
+            if (plan == null || !FloorPlanSpots.TryGetBounds(plan, out var min, out var max)) return false;
+
+            position = TopViewPosition(min, max, Units.MmToM(plan.CeilingHeight.Value),
+                Camera.fieldOfView, Camera.aspect, FrameMargin);
+            return true;
         }
 
         void OnDisable()
@@ -217,6 +246,22 @@ namespace Bangkku.Input
         }
 
         static bool TryGetFloorPoint(Ray ray, out Vector3 point) => TryGetPlanePoint(ray, 0f, out point);
+
+        /// <summary>
+        /// 평면도 범위(mm)를 바로 위(아래를 보고 화면 위쪽 = 평면도 위쪽)에서 볼 때 전체가 들어오는 카메라 위치 (m).
+        /// 가장 가까운 벽 윗면(천장 높이) 기준으로 세로·가로 중 더 먼 거리를 고른다.
+        /// </summary>
+        /// <param name="verticalFovDegrees">Camera.fieldOfView (세로 시야각)</param>
+        /// <param name="aspect">가로 ÷ 세로</param>
+        public static Vector3 TopViewPosition(Vector2 minMm, Vector2 maxMm, float topHeightM, float verticalFovDegrees, float aspect, float margin)
+        {
+            var center = Units.PlanToWorld((minMm.x + maxMm.x) * 0.5f, (minMm.y + maxMm.y) * 0.5f);
+            float halfWidth = Units.MmToM(maxMm.x - minMm.x) * 0.5f;   // 화면 가로 = 평면도 X
+            float halfDepth = Units.MmToM(maxMm.y - minMm.y) * 0.5f;   // 화면 세로 = 평면도 Y
+            float tanHalf = Mathf.Tan(verticalFovDegrees * 0.5f * Mathf.Deg2Rad);
+            float distance = Mathf.Max(halfDepth / tanHalf, halfWidth / (tanHalf * Mathf.Max(aspect, 0.01f))) * Mathf.Max(margin, 1f);
+            return new Vector3(center.x, topHeightM + distance, center.z);
+        }
 
         /// <summary>바닥 교점 + 잡은 지점의 오프셋. 가구는 바닥에 붙어 있으므로 y = 0</summary>
         public static Vector3 DragPosition(Vector3 floorPoint, Vector3 grabOffset)
