@@ -50,6 +50,66 @@ namespace Bangkku.Placement
             return furniture;
         }
 
+        /// <summary>
+        /// 새 박스 가구를 만들어 선택하고 격자·벽 스냅을 적용한다. 데스크톱 메뉴와 VR 손목 메뉴가 같이 쓴다.
+        /// id 는 box_01 부터 자동, 색은 id 번호대로. 이름이 비면 id. 만든 가구를 돌려준다.
+        /// </summary>
+        public static FurnitureItem AddNew(FurnitureItem prefab, string name, SizeMm size, Confidence confidence,
+            Vector3 position, Transform parent)
+        {
+            string id = NextIdInScene();
+            var item = new CatalogItem
+            {
+                Id = id,
+                Name = string.IsNullOrWhiteSpace(name) ? id : name.Trim(),
+                Source = FurnitureSource.Box,
+                Size = size,
+                SizeConfidence = confidence,
+                Color = ColorFor(IdNumber(id) - 1),
+            };
+
+            var furniture = Create(prefab, item, position, 0f, parent);
+
+            // 선택한 뒤 다시 놓아서 격자·벽 스냅을 적용한다
+            var selection = SelectionManager.Instance;
+            selection.Select(furniture);
+            selection.MoveSelectedTo(position);
+
+            Debug.Log($"[방꾸] 새 박스 가구: {Describe(item)}", furniture);
+            return furniture;
+        }
+
+        /// <summary>"침대 (box_01) 1100×2000×450mm drawing"</summary>
+        public static string Describe(CatalogItem item) =>
+            $"{item.Name} ({item.Id}) {item.Size.W}×{item.Size.D}×{item.Size.H}mm {item.SizeConfidence.ToJsonValue()}";
+
+        /// <summary>선택을 풀고 가구를 지운다</summary>
+        public static void Delete(FurnitureItem item)
+        {
+            if (item == null) return;
+            if (SelectionManager.Instance.Selected == item) SelectionManager.Instance.Deselect();
+            Debug.Log($"[방꾸] 가구 삭제: {item.ItemId}", item);
+            Object.Destroy(item.gameObject);
+        }
+
+        /// <summary>칸에 넣은 프리팹, 없으면 씬의 TestFurnitureSpawner 프리팹</summary>
+        public static FurnitureItem ResolvePrefab(FurnitureItem assigned)
+        {
+            if (assigned != null) return assigned;
+            var spawner = Object.FindFirstObjectByType<TestFurnitureSpawner>();
+            return spawner != null ? spawner.Prefab : null;
+        }
+
+        /// <summary>치수를 delta 만큼 바꾸고 MinSizeMm ~ MaxSizeMm 로 자른다 (VR 메뉴 ± 버튼)</summary>
+        public static int StepSize(int currentMm, int deltaMm) => Mathf.Clamp(currentMm + deltaMm, MinSizeMm, MaxSizeMm);
+
+        /// <summary>"box_07" → 7. 번호가 없으면 0</summary>
+        public static int IdNumber(string id)
+        {
+            int underscore = id?.LastIndexOf('_') ?? -1;
+            return underscore >= 0 && int.TryParse(id.Substring(underscore + 1), out int n) ? n : 0;
+        }
+
         /// <summary>"box_01" 처럼 아직 쓰지 않은 가장 작은 번호의 id (에셋 ID 규칙: 소문자_번호)</summary>
         public static string NextId(IEnumerable<string> usedIds, string prefix = "box")
         {
