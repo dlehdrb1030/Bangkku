@@ -280,6 +280,14 @@ namespace Bangkku.Input
             _ => "여유",
         };
 
+        /// <summary>"w3_0 까지 32mm", 1m 안에 아무것도 없으면 "1m 이상"</summary>
+        static string GapText(FurnitureItem item)
+        {
+            var validator = PlacementValidator.Instance;
+            if (!validator.TryGetGap(item, out var gap) || !gap.HasTarget) return $"{validator.MaxGapMeters:0.#}m 이상";
+            return $"{PlacementValidator.DescribeTarget(gap.Target)} 까지 {Units.MToMm(gap.Meters)}mm";
+        }
+
         void OnGUI()
         {
             _style ??= new GUIStyle(GUI.skin.label) { fontSize = 16, normal = { textColor = Color.white } };
@@ -288,7 +296,7 @@ namespace Bangkku.Input
             if (Selected != null)
             {
                 var plan = Units.WorldToPlan(Selected.transform.position);
-                selected = $"선택: {Selected.ItemId}   위치 ({plan.x}, {plan.y}) mm   회전 {Selected.transform.eulerAngles.y:0}°   상태 {StateText(Selected.State)}";
+                selected = $"선택: {Selected.ItemId}   위치 ({plan.x}, {plan.y}) mm   회전 {Selected.transform.eulerAngles.y:0}°   상태 {StateText(Selected.State)}   간격 {GapText(Selected)}";
             }
 
             GUI.Label(new Rect(12, 8, 900, 26), selected, _style);

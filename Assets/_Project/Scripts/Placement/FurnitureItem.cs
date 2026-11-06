@@ -80,7 +80,9 @@ namespace Bangkku.Placement
         /// </summary>
         internal void SetPlacementResult(PlacementState state, float minGapMeters)
         {
-            if (state == State && Mathf.Approximately(minGapMeters, MinGapMeters)) return;
+            // 둘 다 PositiveInfinity 면 Approximately 가 false 라서 == 를 먼저 본다 (그러지 않으면 매번 PlacementChanged 가 불린다)
+            bool sameGap = minGapMeters == MinGapMeters || Mathf.Approximately(minGapMeters, MinGapMeters);
+            if (state == State && sameGap) return;
 
             State = state;
             MinGapMeters = minGapMeters;
