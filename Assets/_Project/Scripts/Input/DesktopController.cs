@@ -228,6 +228,13 @@ namespace Bangkku.Input
 
         // ───────────── 화면 안내 ─────────────
 
+        static string StateText(PlacementState state) => state switch
+        {
+            PlacementState.Overlap => "겹침",
+            PlacementState.Tight => "좁음",
+            _ => "여유",
+        };
+
         void OnGUI()
         {
             _style ??= new GUIStyle(GUI.skin.label) { fontSize = 16, normal = { textColor = Color.white } };
@@ -236,7 +243,7 @@ namespace Bangkku.Input
             if (Selected != null)
             {
                 var plan = Units.WorldToPlan(Selected.transform.position);
-                selected = $"선택: {Selected.ItemId}   위치 ({plan.x}, {plan.y}) mm   회전 {Selected.transform.eulerAngles.y:0}°";
+                selected = $"선택: {Selected.ItemId}   위치 ({plan.x}, {plan.y}) mm   회전 {Selected.transform.eulerAngles.y:0}°   상태 {StateText(Selected.State)}";
             }
 
             GUI.Label(new Rect(12, 8, 900, 26), selected, _style);
