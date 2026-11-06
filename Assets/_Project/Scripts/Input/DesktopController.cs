@@ -1,6 +1,7 @@
 using Bangkku.Core;
 using Bangkku.FloorPlan;
 using Bangkku.Placement;
+using Bangkku.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.XR;
@@ -14,6 +15,7 @@ namespace Bangkku.Input
     /// - Q / E: 선택한 가구를 Y축으로 -90° / +90° 회전, Shift 를 누르면 15°
     /// - 우클릭을 누른 채: 마우스로 시점 회전, W A S D 로 이동 (Shift 로 빠르게)
     /// - 마우스 휠: 보는 방향으로 확대·축소
+    /// - 가구 메뉴(FurnitureMenu) 위에서는 클릭·휠이 가구·시점에 닿지 않고, 메뉴 입력칸에 글자를 넣는 동안에는 Q/E·WASD 를 무시한다
     /// VR 이 켜져 있으면 스스로 꺼진다 (Disable When XR Active).
     /// 판정(겹침·간격)과 스냅은 다른 컴포넌트가 맡는다. 여기서는 위치와 회전만 바꾼다.
     /// </summary>
@@ -122,22 +124,26 @@ namespace Bangkku.Input
             var keyboard = Keyboard.current;
             if (mouse == null || keyboard == null || Camera == null) return;
 
+            bool overMenu = FurnitureMenu.IsPointerOver(mouse.position.ReadValue());
+            bool typing = FurnitureMenu.IsTyping;
+
             bool looking = mouse.rightButton.isPressed;
             SetCursorLocked(looking);
             if (looking)
             {
                 _dragging = false;
                 Look(mouse.delta.ReadValue());
-                Move(keyboard);
+                if (!typing) Move(keyboard);
             }
             else
             {
                 bool snap = !IsFreeMode(keyboard);
-                HandleSelectionAndDrag(mouse, snap);
-                HandleRotation(keyboard, snap);
+                HandleSelectionAndDrag(mouse, snap, overMenu);
+                if (!typing) HandleRotation(keyboard, snap);
             }
 
-            Zoom(mouse.scroll.ReadValue().y);
+            // 메뉴 위에서 휠은 목록 스크롤이다
+            if (!overMenu) Zoom(mouse.scroll.ReadValue().y);
         }
 
         // ───────────── 시점 ─────────────
@@ -180,11 +186,12 @@ namespace Bangkku.Input
         /// <summary>Alt(맥은 Option)를 누르는 동안은 스냅 없이 자유롭게 움직인다</summary>
         static bool IsFreeMode(Keyboard keyboard) => keyboard.leftAltKey.isPressed || keyboard.rightAltKey.isPressed;
 
-        void HandleSelectionAndDrag(Mouse mouse, bool snap)
+        void HandleSelectionAndDrag(Mouse mouse, bool snap, bool overMenu)
         {
             var ray = Camera.ScreenPointToRay(mouse.position.ReadValue());
 
-            if (mouse.leftButton.wasPressedThisFrame)
+            // 메뉴를 누른 것은 가구 선택·해제가 아니다 (드래그 중에 메뉴 위를 지나가는 것은 그대로 둔다)
+            if (mouse.leftButton.wasPressedThisFrame && !overMenu)
             {
                 if (Physics.Raycast(ray, out var hit, 100f, Layers.FurnitureMask))
                 {
@@ -321,7 +328,7 @@ namespace Bangkku.Input
 
             y += 24f;
             GUI.Label(new Rect(12, y, 1100, 26),
-                "좌클릭: 선택·드래그 (Alt: 스냅 끄기)   Q/E: 90° 회전 (Shift: 15°)   우클릭+마우스: 시점   우클릭+WASD: 이동   휠: 확대", _style);
+                "좌클릭: 선택·드래그 (Alt: 스냅 끄기)   Q/E: 90° 회전 (Shift: 15°)   우클릭+마우스: 시점   우클릭+WASD: 이동   휠: 확대   Tab: 가구 메뉴", _style);
         }
     }
 }
