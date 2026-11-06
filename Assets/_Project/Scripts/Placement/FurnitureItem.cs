@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Bangkku.Core;
 using Bangkku.Furniture;
 using UnityEngine;
@@ -24,6 +25,14 @@ namespace Bangkku.Placement
     [RequireComponent(typeof(Rigidbody))]
     public class FurnitureItem : MonoBehaviour
     {
+        static readonly List<FurnitureItem> AllItems = new();
+
+        /// <summary>켜져 있는 가구 전부. PlacementValidator 가 판정할 때 쓴다</summary>
+        public static IReadOnlyList<FurnitureItem> All => AllItems;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => AllItems.Clear();
+
         /// <summary>catalog id</summary>
         public string ItemId;
 
@@ -100,6 +109,14 @@ namespace Bangkku.Placement
             else
                 BoxCollider.gameObject.layer = Layers.Furniture;
         }
+
+        void OnEnable()
+        {
+            if (!AllItems.Contains(this)) AllItems.Add(this);
+            PlacementValidator.EnsureInstance();
+        }
+
+        void OnDisable() => AllItems.Remove(this);
 
         /// <summary>SizeMeters 를 BoxCollider 와 LabelAnchor 에 반영한다.</summary>
         void ApplySize()
