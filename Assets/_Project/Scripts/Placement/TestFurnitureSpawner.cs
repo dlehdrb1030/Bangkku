@@ -91,20 +91,7 @@ namespace Bangkku.Placement
         {
             if (plan?.Name != null && Layouts.TryGetValue(plan.Name, out var layout)) return layout;
 
-            var center = Vector2.zero;
-            var floor = FloorPlanSpots.LargestFloor(plan);
-            if (floor != null)
-            {
-                var min = new Vector2(float.MaxValue, float.MaxValue);
-                var max = new Vector2(float.MinValue, float.MinValue);
-                foreach (var p in floor.Polygon)
-                {
-                    min = Vector2.Min(min, new Vector2(p[0], p[1]));
-                    max = Vector2.Max(max, new Vector2(p[0], p[1]));
-                }
-
-                center = (min + max) * 0.5f;
-            }
+            var center = BoxFurniture.LargestFloorCenterMm(plan) ?? Vector2.zero;
 
             Debug.LogWarning($"[방꾸] TestFurnitureSpawner: '{plan?.Name}' 평면도용 가구 위치가 없어 가장 넓은 바닥 가운데 {center} mm 에 늘어놓습니다. " +
                              "Layouts 에 위치를 추가하세요.", this);
@@ -116,32 +103,7 @@ namespace Bangkku.Placement
             };
         }
 
-        /// <summary>박스 가구 하나를 만든다. Init 이 판정용 콜라이더 크기를 맞추고, Visual 에는 같은 크기의 색 상자를 넣는다.</summary>
-        FurnitureItem Create(CatalogItem item, Vector3 position, float rotationY)
-        {
-            var furniture = Instantiate(Prefab, position, Quaternion.Euler(0f, rotationY, 0f), transform);
-            furniture.Init(item);
-
-            var visualParent = furniture.transform.Find("Visual");
-            if (visualParent == null)
-            {
-                visualParent = new GameObject("Visual").transform;
-                visualParent.SetParent(furniture.transform, false);
-            }
-
-            var size = furniture.SizeMeters;
-            var visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            visual.name = "Box";
-            visual.layer = Layers.Furniture;
-            Destroy(visual.GetComponent<Collider>());
-
-            var t = visual.transform;
-            t.SetParent(visualParent, false);
-            t.localPosition = new Vector3(0f, size.y * 0.5f, 0f);
-            t.localScale = size;
-
-            if (item.TryGetColor(out var color)) visual.GetComponent<MeshRenderer>().material.color = color;
-            return furniture;
-        }
+        FurnitureItem Create(CatalogItem item, Vector3 position, float rotationY) =>
+            BoxFurniture.Create(Prefab, item, position, rotationY, transform);
     }
 }
