@@ -15,7 +15,9 @@ namespace Bangkku.Input
     /// - Q / E: 선택한 가구를 Y축으로 -90° / +90° 회전, Shift 를 누르면 15°
     /// - 우클릭을 누른 채: 마우스로 시점 회전, W A S D 로 이동 (Shift 로 빠르게)
     /// - 마우스 휠: 보는 방향으로 확대·축소
-    /// - 가구 메뉴(FurnitureMenu) 위에서는 클릭·휠이 가구·시점에 닿지 않고, 메뉴 입력칸에 글자를 넣는 동안에는 Q/E·WASD 를 무시한다
+    /// - L: 신뢰도 라벨 표시 방식 바꾸기 (모든 가구 → 선택한 가구만 → 끄기)
+    /// - 가구 메뉴(FurnitureMenu)·상태 패널(StatusPanel) 위에서는 클릭·휠이 가구·시점에 닿지 않고, 메뉴 입력칸에 글자를 넣는 동안에는 Q/E·WASD·L 을 무시한다
+    /// 선택한 가구 정보는 StatusPanel 이 화면 왼쪽 아래에 보여 준다.
     /// VR 이 켜져 있으면 스스로 꺼진다 (Disable When XR Active).
     /// 판정(겹침·간격)과 스냅은 다른 컴포넌트가 맡는다. 여기서는 위치와 회전만 바꾼다.
     /// </summary>
@@ -67,6 +69,7 @@ namespace Bangkku.Input
         bool _dragging;
         Vector3 _grabOffset;
         GUIStyle _style;
+        ConfidenceLabel _confidenceLabel;
 
         void Awake()
         {
@@ -82,6 +85,9 @@ namespace Bangkku.Input
                 enabled = false;
                 return;
             }
+
+            // 씬이 열릴 때(AfterSceneLoad) 만들어진 신뢰도 라벨. 안내 글자에 지금 표시 방식을 보여 준다
+            _confidenceLabel = FindAnyObjectByType<ConfidenceLabel>();
 
             if (Camera == null) return;
             _pitch = StartPitchYaw.x;
@@ -124,8 +130,10 @@ namespace Bangkku.Input
             var keyboard = Keyboard.current;
             if (mouse == null || keyboard == null || Camera == null) return;
 
-            bool overMenu = FurnitureMenu.IsPointerOver(mouse.position.ReadValue());
+            var pointer = mouse.position.ReadValue();
+            bool overMenu = FurnitureMenu.IsPointerOver(pointer) || StatusPanel.IsPointerOver(pointer);
             bool typing = FurnitureMenu.IsTyping;
+            if (!typing) HandleLabelToggle(keyboard);
 
             bool looking = mouse.rightButton.isPressed;
             SetCursorLocked(looking);
@@ -280,55 +288,23 @@ namespace Bangkku.Input
 
         // ───────────── 화면 안내 ─────────────
 
-        static string StateText(PlacementState state) => state switch
+        /// <summary>L 키: 신뢰도 라벨 표시 방식 (모든 가구 → 선택한 가구만 → 끄기)</summary>
+        void HandleLabelToggle(Keyboard keyboard)
         {
-            PlacementState.Overlap => "겹침",
-            PlacementState.Tight => "좁음",
-            _ => "여유",
-        };
-
-        /// <summary>"w3_0 까지 32mm", 1m 안에 아무것도 없으면 "1m 이상"</summary>
-        static string GapText(FurnitureItem item)
-        {
-            var validator = PlacementValidator.Instance;
-            if (!validator.TryGetGap(item, out var gap) || !gap.HasTarget) return $"{validator.MaxGapMeters:0.#}m 이상";
-            return $"{PlacementValidator.DescribeTarget(gap.Target)} 까지 {Units.MToMm(gap.Meters)}mm";
+            if (!keyboard.lKey.wasPressedThisFrame) return;
+            if (_confidenceLabel == null) _confidenceLabel = FindAnyObjectByType<ConfidenceLabel>();
+            if (_confidenceLabel != null) _confidenceLabel.CycleMode();
         }
 
-        /// <summary>"좁음 판정 C (신뢰도 measured 10mm): 앞뒤 여유 54mm (w3_0 34mm + desk_01 20mm) < 기준 100mm (desk_01 estimated)"</summary>
-        static string TightText(FurnitureItem item)
-        {
-            var validator = PlacementValidator.Instance;
-            if (!validator.TryGetTight(item, out var tight)) return string.Empty;
-            return $"좁음 판정 {PlacementValidator.RuleLetter(validator.TightRule)} " +
-                   $"(신뢰도 {item.SizeConfidence.ToJsonValue()} {item.SizeConfidence.MarginMm()}mm): " +
-                   PlacementValidator.DescribeTight(tight, Units.MmToM(validator.MinTightGapMm));
-        }
-
+        // 선택한 가구 정보(위치·상태·간격·좁음 근거)는 StatusPanel 이 왼쪽 아래에 보여 준다. 여기서는 조작 안내만
         void OnGUI()
         {
             _style ??= new GUIStyle(GUI.skin.label) { fontSize = 16, normal = { textColor = Color.white } };
 
-            string selected = "선택: 없음";
-            string tight = string.Empty;
-            if (Selected != null)
-            {
-                var plan = Units.WorldToPlan(Selected.transform.position);
-                selected = $"선택: {Selected.ItemId}   위치 ({plan.x}, {plan.y}) mm   회전 {Selected.transform.eulerAngles.y:0}°   상태 {StateText(Selected.State)}   간격 {GapText(Selected)}";
-                tight = TightText(Selected);
-            }
-
-            float y = 8f;
-            GUI.Label(new Rect(12, y, 1100, 26), selected, _style);
-            if (tight.Length > 0)
-            {
-                y += 24f;
-                GUI.Label(new Rect(12, y, 1100, 26), tight, _style);
-            }
-
-            y += 24f;
-            GUI.Label(new Rect(12, y, 1100, 26),
-                "좌클릭: 선택·드래그 (Alt: 스냅 끄기)   Q/E: 90° 회전 (Shift: 15°)   우클릭+마우스: 시점   우클릭+WASD: 이동   휠: 확대   Tab: 가구 메뉴", _style);
+            string label = _confidenceLabel != null ? $" ({ConfidenceLabel.ModeText(_confidenceLabel.Mode)})" : string.Empty;
+            GUI.Label(new Rect(12, 8, 1400, 26),
+                "좌클릭: 선택·드래그 (Alt: 스냅 끄기)   Q/E: 90° 회전 (Shift: 15°)   우클릭+마우스: 시점   우클릭+WASD: 이동   휠: 확대   " +
+                $"Tab: 가구 메뉴   L: 신뢰도 라벨{label}", _style);
         }
     }
 }
