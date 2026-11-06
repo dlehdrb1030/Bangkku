@@ -229,40 +229,8 @@ namespace Bangkku.FloorPlan
         {
             if (assigned != null) return assigned;
             if (!_fallbackMaterials.TryGetValue(fallbackName, out var material))
-                _fallbackMaterials[fallbackName] = material = CreateLitMaterial(fallbackName, color, transparent);
-            return material;
-        }
-
-        /// <summary>
-        /// URP Lit 단색 재질. transparent 면 Inspector 에서 Surface Type 을 Transparent(Alpha) 로 바꾼 것과 같다.
-        /// </summary>
-        static Material CreateLitMaterial(string materialName, Color color, bool transparent)
-        {
-            var shader = Shader.Find("Universal Render Pipeline/Lit");
-            if (shader == null)
-            {
-                Debug.LogWarning($"[방꾸] URP Lit 셰이더를 찾지 못했습니다. {materialName} 재질을 Inspector 에서 지정하세요.");
-                return null;
-            }
-
-            var material = new Material(shader) { name = materialName + " (자동 생성)" };
-            material.SetColor("_BaseColor", color);
-            if (transparent)
-            {
-                material.SetFloat("_Surface", 1f); // Transparent
-                material.SetFloat("_Blend", 0f); // Alpha
-                material.SetFloat("_BlendModePreserveSpecular", 0f);
-                material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
-                material.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
-                material.SetFloat("_SrcBlendAlpha", (float)BlendMode.One);
-                material.SetFloat("_DstBlendAlpha", (float)BlendMode.OneMinusSrcAlpha);
-                material.SetFloat("_ZWrite", 0f);
-                material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-                material.SetOverrideTag("RenderType", "Transparent");
-                material.renderQueue = (int)RenderQueue.Transparent;
-                material.SetFloat("_Smoothness", 0.9f);
-            }
-
+                _fallbackMaterials[fallbackName] = material =
+                    UrpMaterials.CreateLit(fallbackName + " (자동 생성)", color, transparent ? 0.9f : 0.5f, transparent);
             return material;
         }
 
