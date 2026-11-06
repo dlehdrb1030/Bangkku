@@ -288,19 +288,39 @@ namespace Bangkku.Input
             return $"{PlacementValidator.DescribeTarget(gap.Target)} 까지 {Units.MToMm(gap.Meters)}mm";
         }
 
+        /// <summary>"좁음 판정 C (신뢰도 measured 10mm): 앞뒤 여유 54mm (w3_0 34mm + desk_01 20mm) < 기준 100mm (desk_01 estimated)"</summary>
+        static string TightText(FurnitureItem item)
+        {
+            var validator = PlacementValidator.Instance;
+            if (!validator.TryGetTight(item, out var tight)) return string.Empty;
+            return $"좁음 판정 {PlacementValidator.RuleLetter(validator.TightRule)} " +
+                   $"(신뢰도 {item.SizeConfidence.ToJsonValue()} {item.SizeConfidence.MarginMm()}mm): " +
+                   PlacementValidator.DescribeTight(tight, Units.MmToM(validator.MinTightGapMm));
+        }
+
         void OnGUI()
         {
             _style ??= new GUIStyle(GUI.skin.label) { fontSize = 16, normal = { textColor = Color.white } };
 
             string selected = "선택: 없음";
+            string tight = string.Empty;
             if (Selected != null)
             {
                 var plan = Units.WorldToPlan(Selected.transform.position);
                 selected = $"선택: {Selected.ItemId}   위치 ({plan.x}, {plan.y}) mm   회전 {Selected.transform.eulerAngles.y:0}°   상태 {StateText(Selected.State)}   간격 {GapText(Selected)}";
+                tight = TightText(Selected);
             }
 
-            GUI.Label(new Rect(12, 8, 900, 26), selected, _style);
-            GUI.Label(new Rect(12, 32, 900, 26),
+            float y = 8f;
+            GUI.Label(new Rect(12, y, 1100, 26), selected, _style);
+            if (tight.Length > 0)
+            {
+                y += 24f;
+                GUI.Label(new Rect(12, y, 1100, 26), tight, _style);
+            }
+
+            y += 24f;
+            GUI.Label(new Rect(12, y, 1100, 26),
                 "좌클릭: 선택·드래그 (Alt: 스냅 끄기)   Q/E: 90° 회전 (Shift: 15°)   우클릭+마우스: 시점   우클릭+WASD: 이동   휠: 확대", _style);
         }
     }

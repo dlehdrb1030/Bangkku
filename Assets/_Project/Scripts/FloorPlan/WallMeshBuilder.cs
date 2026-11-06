@@ -32,13 +32,22 @@ namespace Bangkku.FloorPlan
         /// <summary>Y축 회전 (도). 큐브의 로컬 +X 가 벽 start → end 방향이 된다</summary>
         public readonly float YawDegrees;
 
-        public WallPiece(string name, WallPieceKind kind, Vector3 center, Vector3 size, float yawDegrees)
+        /// <summary>이 조각이 나온 벽의 id (예: w0)</summary>
+        public readonly string WallId;
+
+        /// <summary>그 벽의 치수 신뢰도. 판정 여유값에 쓴다</summary>
+        public readonly Confidence Confidence;
+
+        public WallPiece(string name, WallPieceKind kind, Vector3 center, Vector3 size, float yawDegrees,
+            string wallId = null, Confidence confidence = ConfidenceExtensions.Default)
         {
             Name = name;
             Kind = kind;
             Center = center;
             Size = size;
             YawDegrees = yawDegrees;
+            WallId = wallId;
+            Confidence = confidence;
         }
     }
 
@@ -103,7 +112,7 @@ namespace Bangkku.FloorPlan
                 if (s1 - s0 < MinPieceM || y1 - y0 < MinPieceM) return;
                 Vector3 center = start + axis * ((s0 + s1) * 0.5f);
                 center.y = (y0 + y1) * 0.5f;
-                pieces.Add(new WallPiece(pieceName, kind, center, new Vector3(s1 - s0, y1 - y0, depth), yaw));
+                pieces.Add(new WallPiece(pieceName, kind, center, new Vector3(s1 - s0, y1 - y0, depth), yaw, wall.Id, wall.Confidence));
             }
 
             void AddWall(float s0, float s1, float y0, float y1) =>
@@ -169,6 +178,9 @@ namespace Bangkku.FloorPlan
             t.localPosition = piece.Center;
             t.localRotation = Quaternion.Euler(0f, piece.YawDegrees, 0f);
             t.localScale = piece.Size;
+
+            // 좁음 판정이 이 조각의 신뢰도 여유값을 읽는다 (유리판은 그 창이 있는 벽의 신뢰도)
+            go.AddComponent<StructureConfidence>().Set(piece.WallId, piece.Confidence);
 
             var meshRenderer = go.GetComponent<MeshRenderer>();
             if (material != null) meshRenderer.sharedMaterial = material;
