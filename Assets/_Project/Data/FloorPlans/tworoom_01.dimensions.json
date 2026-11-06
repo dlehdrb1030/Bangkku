@@ -1,0 +1,21 @@
+{
+  "floorplan": "tworoom_01",
+  "toleranceMm": 20,
+  "dimensions": [
+    { "id": "x_bedroom2", "label": "도면 가로 2470: 왼쪽 벽 ~ 침실2 오른쪽 벽", "from": { "wall": "w3" }, "to": { "wall": "w6" }, "expectedMm": 2470 },
+    { "id": "x_entrance", "label": "도면 가로 1735: 침실2 오른쪽 벽 ~ 신발장 오른쪽 벽", "from": { "wall": "w6" }, "to": { "wall": "w4" }, "expectedMm": 1735 },
+    { "id": "x_kitchen", "label": "도면 가로 695: 신발장 오른쪽 벽 ~ 오른쪽 벽", "from": { "wall": "w4" }, "to": { "wall": "w1" }, "expectedMm": 695 },
+    { "id": "x_total", "label": "도면 가로 4900: 왼쪽 벽 ~ 오른쪽 벽 (전체)", "from": { "wall": "w3" }, "to": { "wall": "w1" }, "expectedMm": 4900 },
+
+    { "id": "y_bedroom2", "label": "도면 세로 2930: 위쪽 벽 ~ 침실2 아래 벽", "from": { "wall": "w0" }, "to": { "wall": "w7" }, "expectedMm": 2930 },
+    { "id": "y_bath", "label": "도면 세로 2360: 침실2 아래 벽 ~ 욕실 아래 벽", "from": { "wall": "w7" }, "to": { "wall": "w9" }, "expectedMm": 2360 },
+    { "id": "y_living", "label": "도면 세로 3220: 욕실 아래 벽 ~ 거실·발코니 사이 벽", "from": { "wall": "w9" }, "to": { "wall": "w12" }, "expectedMm": 3220 },
+    { "id": "y_balcony", "label": "도면 세로 1300: 거실·발코니 사이 벽 중심선 ~ 발코니 바깥면", "from": { "wall": "w12" }, "to": { "wall": "w2", "at": "far" }, "expectedMm": 1300 },
+    { "id": "y_total", "label": "도면 세로 9810: 위쪽 벽 중심선 ~ 발코니 바깥면 (전체)", "from": { "wall": "w0" }, "to": { "wall": "w2", "at": "far" }, "expectedMm": 9810 },
+
+    { "id": "bedroom2_clear_width", "label": "참고: 침실2 안쪽 가로 (실측하면 expectedMm 에 적기)", "from": { "wall": "w3", "at": "near" }, "to": { "wall": "w6", "at": "near" } },
+    { "id": "bedroom2_clear_depth", "label": "참고: 침실2 안쪽 세로 (실측하면 expectedMm 에 적기)", "from": { "wall": "w0", "at": "near" }, "to": { "wall": "w7", "at": "near" } },
+    { "id": "living_clear_width", "label": "참고: 거실 안쪽 가로 (실측하면 expectedMm 에 적기)", "from": { "wall": "w3", "at": "near" }, "to": { "wall": "w1", "at": "near" } },
+    { "id": "living_clear_depth", "label": "참고: 거실 안쪽 세로 (욕실 아래 벽 ~ 발코니 사이 벽, 실측하면 expectedMm 에 적기)", "from": { "wall": "w9", "at": "near" }, "to": { "wall": "w12", "at": "near" } }
+  ]
+}

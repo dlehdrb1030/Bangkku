@@ -1,0 +1,42 @@
+{
+  "name": "tworoom_01",
+  "unit": "mm",
+  "ceilingHeight": { "value": 2400, "confidence": "estimated" },
+  "defaultWallThickness": 150,
+  "walls": [
+    { "id": "w0", "start": [0, 0], "end": [4205, 0], "thickness": 300, "confidence": "drawing" },
+    { "id": "w1", "start": [4900, 1370], "end": [4900, 9735], "confidence": "drawing" },
+    { "id": "w2", "start": [0, 9735], "end": [4900, 9735], "confidence": "drawing" },
+    { "id": "w3", "start": [0, 0], "end": [0, 9735], "confidence": "drawing" },
+    { "id": "w4", "start": [4205, 0], "end": [4205, 1370], "thickness": 300, "confidence": "drawing" },
+    { "id": "w5", "start": [4205, 1370], "end": [4900, 1370], "thickness": 300, "confidence": "estimated" },
+    { "id": "w6", "start": [2470, 0], "end": [2470, 2930], "thickness": 100, "confidence": "drawing" },
+    { "id": "w7", "start": [0, 2930], "end": [2470, 2930], "confidence": "drawing" },
+    { "id": "w8", "start": [1725, 2930], "end": [1725, 5290], "thickness": 100, "confidence": "estimated" },
+    { "id": "w9", "start": [0, 5290], "end": [2100, 5290], "thickness": 100, "confidence": "drawing" },
+    { "id": "w10", "start": [675, 2930], "end": [675, 3870], "confidence": "estimated" },
+    { "id": "w11", "start": [0, 3870], "end": [675, 3870], "confidence": "estimated" },
+    { "id": "w12", "start": [0, 8510], "end": [4900, 8510], "thickness": 300, "confidence": "drawing" }
+  ],
+  "openings": [
+    { "id": "door_entrance", "wallId": "w0", "type": "door", "offset": 2520, "width": 1030, "sill": 0, "head": 2100 },
+    { "id": "win_bedroom2", "wallId": "w0", "type": "window", "offset": 630, "width": 1230, "sill": 900, "head": 2100 },
+    { "id": "door_bedroom2", "wallId": "w6", "type": "door", "offset": 1980, "width": 850, "sill": 0, "head": 2100 },
+    { "id": "door_bath", "wallId": "w8", "type": "door", "offset": 1590, "width": 720, "sill": 0, "head": 2100 },
+    { "id": "door_balcony", "wallId": "w12", "type": "door", "offset": 1400, "width": 2720, "sill": 0, "head": 2100 },
+    { "id": "win_balcony", "wallId": "w2", "type": "window", "offset": 1400, "width": 2720, "sill": 900, "head": 2100 }
+  ],
+  "floors": [
+    { "id": "f_living", "material": "wood", "polygon": [[2520, 1450], [4055, 1450], [4055, 1520], [4825, 1520], [4825, 8360], [75, 8360], [75, 5340], [1775, 5340], [1775, 3005], [2520, 3005]] },
+    { "id": "f_bedroom2", "material": "wood", "polygon": [[75, 150], [2420, 150], [2420, 2855], [75, 2855]] },
+    { "id": "f_entrance", "material": "tile", "polygon": [[2520, 150], [4055, 150], [4055, 1450], [2520, 1450]] },
+    { "id": "f_bath", "material": "tile", "polygon": [[750, 3005], [1675, 3005], [1675, 5240], [75, 5240], [75, 3945], [750, 3945]] },
+    { "id": "f_balcony", "material": "tile", "polygon": [[75, 8660], [4825, 8660], [4825, 9660], [75, 9660]] }
+  ],
+  "fixtures": [
+    { "id": "kitchen", "type": "counter", "position": [4500, 2860], "size": [2590, 650, 900], "rotation": -90 },
+    { "id": "shoe_cabinet", "type": "cabinet", "position": [3805, 800], "size": [1300, 500, 2100], "rotation": -90 },
+    { "id": "toilet", "type": "toilet", "position": [500, 4905], "size": [400, 700, 750], "rotation": 90 },
+    { "id": "washbasin", "type": "washbasin", "position": [370, 4255], "size": [540, 450, 850], "rotation": 90 }
+  ]
+}
