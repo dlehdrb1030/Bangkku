@@ -53,6 +53,7 @@ namespace Bangkku.Placement
         {
             ["oneroom_01"] = new[] { At(Sofa, 1500, 5100), At(Bed, 2800, 4000), At(Desk, 1400, 3300) },
             ["oneroom_02"] = new[] { At(Sofa, 1000, 6000), At(Bed, 3270, 6900), At(Desk, 1500, 3800) },
+            ["tworoom_01"] = new[] { At(Sofa, 2400, 7800), At(Bed, 625, 1150), At(Desk, 900, 5800) },
         };
 
         /// <summary>정해 둔 위치가 없는 평면도: 가장 넓은 바닥의 가운데에서 평면도 Y 방향으로 이 간격(mm)씩 늘어놓는다</summary>
