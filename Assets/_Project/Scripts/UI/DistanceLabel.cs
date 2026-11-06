@@ -149,7 +149,8 @@ namespace Bangkku.UI
 
         public enum Kind { Wall, Furniture, Fixture, Other }
 
-        static Kind TargetKind(Collider target)
+        /// <summary>대상 종류 (Layer 로 구분). StatusPanel 도 쓴다</summary>
+        public static Kind TargetKind(Collider target)
         {
             int layer = target.gameObject.layer;
             if (layer == Layers.Wall) return Kind.Wall;
@@ -159,7 +160,7 @@ namespace Bangkku.UI
         }
 
         /// <summary>가구는 카탈로그 이름(없으면 id), 고정설비는 id, 그 외는 오브젝트 이름</summary>
-        static string TargetName(Collider target)
+        public static string TargetName(Collider target)
         {
             var furniture = target.GetComponentInParent<FurnitureItem>();
             if (furniture != null) return furniture.Data != null && !string.IsNullOrEmpty(furniture.Data.Name) ? furniture.Data.Name : furniture.ItemId;

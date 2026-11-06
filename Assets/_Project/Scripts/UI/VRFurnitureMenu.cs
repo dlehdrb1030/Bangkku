@@ -16,7 +16,7 @@ namespace Bangkku.UI
     /// - 가구 목록: 침대·책상·소파·옷장 버튼을 누르면 이름과 치수가 채워진다
     /// - W·D·H: -100 / -10 / +10 / +100 (mm), 신뢰도: 실측·도면·추정
     /// - 추가: 바라보는 방향 앞 바닥(바닥 밖이면 가장 넓은 방 가운데)에 박스 가구를 만들고 선택 (데스크톱 메뉴와 같은 BoxFurniture.AddNew)
-    /// - 선택: 이전·다음으로 배치된 가구를 돌아가며 선택, 삭제
+    /// - 선택: 이전·다음으로 배치된 가구를 돌아가며 선택, 삭제. 선택한 가구 정보는 StatusPanel.CompactText (치수·신뢰도·가장 가까운 대상)
     /// - 접기: 제목 줄만 남긴다
     /// 패널은 손목 위 Offset 자리에 두고 항상 머리 쪽을 보게 돌린다.
     /// EventSystem 이 없으면 XRUIInputModule 과 함께 만든다 (XR 레이로 UI 를 누르는 데 필요).
@@ -245,13 +245,8 @@ namespace Bangkku.UI
             _toggleText.text = _open ? "접기" : "펼치기";
         }
 
-        static string SelectedText()
-        {
-            var item = SelectionManager.Instance.Selected;
-            return item == null
-                ? "선택: 없음"
-                : $"선택: {FurnitureMenu.DisplayName(item)} ({item.ItemId}) {FurnitureMenu.StateText(item.State)}";
-        }
+        /// <summary>선택한 가구 정보 (상태 패널의 짧은 판: 이름·상태 / 치수·신뢰도 / 가장 가까운 대상)</summary>
+        static string SelectedText() => StatusPanel.CompactText(SelectionManager.Instance.Selected);
 
         void RefreshValues()
         {
