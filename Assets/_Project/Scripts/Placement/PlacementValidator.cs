@@ -42,7 +42,7 @@ namespace Bangkku.Placement
         [Tooltip("이만큼(mm)까지 파고든 것은 맞닿음으로 보고 겹침이 아니다. 벽에 붙인 가구가 계산 오차로 겹침이 되지 않도록")]
         public float ContactToleranceMm = 1f;
 
-        [Tooltip("가구가 겹친 대상이 바뀔 때(겹침, 겹침 해제, 다른 대상과 겹침) 콘솔에 남긴다. 끝의 시간은 같은 로그가 Collapse 로 합쳐지지 않게 붙인다")]
+        [Tooltip("가구가 겹친 대상이 바뀔 때(겹침, 겹침 해제, 다른 대상과 겹침) 콘솔에 남긴다")]
         public bool LogChanges = true;
 
         const int BufferSize = 32;
@@ -174,11 +174,10 @@ namespace Bangkku.Placement
             if (targets == (previous ?? string.Empty)) return;
             _lastTargets[item] = targets;
 
-            float time = Time.time;
             if (targets.Length == 0)
-                Debug.Log($"[방꾸] 겹침 해제: {item.ItemId}  ({time:0.00}초)", item);
+                Debug.Log($"[방꾸] 겹침 해제: {item.ItemId}", item);
             else
-                Debug.Log($"[방꾸] 겹침: {item.ItemId} ↔ {targets}  ({time:0.00}초)", item);
+                Debug.Log($"[방꾸] 겹침: {item.ItemId} ↔ {targets}", item);
         }
 
         /// <summary>_hits 의 이름 (가구는 ItemId, 벽·설비는 오브젝트 이름)을 정렬해서 잇는다. 같은 대상이면 순서와 상관없이 같은 문자열</summary>
