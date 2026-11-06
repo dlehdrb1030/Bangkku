@@ -185,7 +185,8 @@ namespace Bangkku.Placement
             _fill.sharedMaterial = fillMaterial;
         }
 
-        Material LineMaterial(PlacementState state) => state switch
+        /// <summary>상태 색 재질 (윤곽선과 같은 것). 거리 라벨 선도 이 색을 쓴다. 셰이더를 못 찾으면 null</summary>
+        public Material LineMaterial(PlacementState state) => state switch
         {
             PlacementState.Overlap => Pick(OverlapMaterial, ref _fallbackOverlap, "StateOverlap", OverlapColor, false),
             PlacementState.Tight => Pick(TightMaterial, ref _fallbackTight, "StateTight", TightColor, false),
