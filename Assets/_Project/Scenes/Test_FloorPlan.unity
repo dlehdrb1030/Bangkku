@@ -412,7 +412,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ab24821aa35546749d4ffcee5a08e35, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Bangkku.FloorPlan.FloorPlanBuilder
-  FloorPlanJson: {fileID: 4900000, guid: 708c89b9e6364493ca22de36af8c3ddf, type: 3}
+  FloorPlanJson: {fileID: 4900000, guid: dbb65b62fb23745f4a0eaea8ee0be28f, type: 3}
   WallMaterial: {fileID: 2100000, guid: c34c1075756e941a3ad23fc38dc3316e, type: 2}
   GlassMaterial: {fileID: 2100000, guid: 12ad3454a74394813a2cb89ec15141f5, type: 2}
   FloorMaterial: {fileID: 2100000, guid: e6f50764226284e0eba2cec0609751a8, type: 2}
