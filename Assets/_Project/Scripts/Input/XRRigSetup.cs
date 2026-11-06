@@ -3,6 +3,7 @@ using Bangkku.FloorPlan;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
+using UnityEngine.XR.Interaction.Toolkit.Interactors.Casters;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
 
 namespace Bangkku.Input
@@ -12,6 +13,7 @@ namespace Bangkku.Input
     /// 1. 생성된 바닥(Floors 아래 전부, 문턱 포함)에 TeleportationArea 를 붙인다 (Interaction Layer = Teleport).
     /// 2. 레이 인터랙터가 바닥·벽·가구·고정설비 Layer 에 맞도록 Raycast Mask 에 더한다.
     ///    (Starter Assets 의 기본 마스크는 Default, UI 뿐이라 우리 Layer 를 통과해 버린다)
+    ///    손의 Near-Far Interactor 는 원거리 레이에 같은 Layer 를, 근거리 구에 Furniture 를 더한다 (가구 잡기).
     /// 3. 처음 한 번 XR Origin 을 시작 위치(평면도 좌표 mm)에 놓고 방 안쪽을 보게 한다.
     /// 씬 오브젝트 하나에 붙이고 Floor Plan 과 Origin 을 지정한다. 비워 두면 씬에서 찾는다.
     /// </summary>
@@ -86,9 +88,22 @@ namespace Bangkku.Input
 
         void AddRayLayers()
         {
-            const int mask = Layers.FloorMask | Layers.WallMask | Layers.FurnitureMask | Layers.FixtureMask;
+            // 원거리: 벽·바닥도 맞아야 벽 너머 가구를 잡지 않는다
+            const int farMask = Layers.FloorMask | Layers.WallMask | Layers.FurnitureMask | Layers.FixtureMask;
             foreach (var ray in Origin.GetComponentsInChildren<XRRayInteractor>(true))
-                ray.raycastMask = ray.raycastMask.value | mask;
+                ray.raycastMask = ray.raycastMask.value | farMask;
+
+            // Starter Assets 의 Near-Far Interactor (XRI 3.x 기본 손 인터랙터): 원거리 레이와 근거리 구 모두 기본값이 Default Layer 뿐이다
+            foreach (var nearFar in Origin.GetComponentsInChildren<NearFarInteractor>(true))
+            {
+                if (nearFar.farInteractionCaster is CurveInteractionCaster far)
+                    far.raycastMask = far.raycastMask.value | farMask;
+                if (nearFar.nearInteractionCaster is SphereInteractionCaster near)
+                    near.physicsLayerMask = near.physicsLayerMask.value | Layers.FurnitureMask;
+            }
+
+            foreach (var direct in Origin.GetComponentsInChildren<XRDirectInteractor>(true))
+                direct.physicsLayerMask = direct.physicsLayerMask.value | Layers.FurnitureMask;
         }
 
         void AddTeleportAreas()
