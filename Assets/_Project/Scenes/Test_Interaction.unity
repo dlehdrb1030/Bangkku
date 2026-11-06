@@ -176,6 +176,52 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+--- !u!1 &674334880
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 674334882}
+  - component: {fileID: 674334881}
+  m_Layer: 0
+  m_Name: TestFurniture
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &674334881
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 674334880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70c20f46f635942f19a96b8cd41b090e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Bangkku.Placement.TestFurnitureSpawner
+  Prefab: {fileID: 4390607552050888967, guid: d6b16af6699514bff82b280ce5313aa0, type: 3}
+  SpawnOnStart: 1
+--- !u!4 &674334882
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 674334880}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0, z: -0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &999562821
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -421,6 +467,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1593865852}
   - component: {fileID: 1593865851}
+  - component: {fileID: 1593865853}
   m_Layer: 0
   m_Name: XRRigSetup
   m_TagString: Untagged
@@ -460,6 +507,26 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1593865853
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1593865850}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e681cae0ed8ab47ae8a8a22759e2b2f7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Bangkku.Input.VRFurnitureGrab
+  Origin: {fileID: 0}
+  NearGrabDistance: 0.1
+  MaxRayDistance: 15
+  CoarseRotationDegrees: 90
+  FineRotationDegrees: 15
+  StickPressThreshold: 0.75
+  StickReleaseThreshold: 0.3
+  LockLocomotionWhileHolding: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -469,3 +536,4 @@ SceneRoots:
   - {fileID: 403930301}
   - {fileID: 999562821}
   - {fileID: 1593865852}
+  - {fileID: 674334882}
