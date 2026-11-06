@@ -110,6 +110,9 @@ namespace Bangkku.Placement
                 Debug.LogError($"[방꾸] {name}: BoxCollider 가 연결되지 않았습니다. 판정이 동작하지 않습니다.", this);
             else
                 BoxCollider.gameObject.layer = Layers.Furniture;
+
+            // 상태 표시(윤곽선 색, 겹침 상자). 프리팹에 없으면 붙인다 (팀원 Variant 를 고치지 않아도 되도록)
+            if (!TryGetComponent<PlacementStateView>(out _)) gameObject.AddComponent<PlacementStateView>();
         }
 
         void OnEnable()

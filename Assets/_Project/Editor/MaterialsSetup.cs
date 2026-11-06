@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 using Bangkku.FloorPlan;
+using Bangkku.Placement;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -40,9 +41,10 @@ namespace Bangkku.EditorTools
             new() { Name = "Glass", Color = new Color(0.75f, 0.88f, 0.95f, 0.25f), Smoothness = 0.9f, Transparent = true, BuilderField = nameof(FloorPlanBuilder.GlassMaterial) },
 
             // 판정 상태 색 (3주차 윤곽선·상자 표시용). 조명을 받지 않는 단색
-            new() { Name = "StateFree", Color = new Color(0.20f, 0.80f, 0.35f), Unlit = true },
-            new() { Name = "StateTight", Color = new Color(0.98f, 0.75f, 0.12f), Unlit = true },
-            new() { Name = "StateOverlap", Color = new Color(0.92f, 0.22f, 0.22f), Unlit = true },
+            new() { Name = "StateFree", Color = PlacementStateView.FreeColor, Unlit = true },
+            new() { Name = "StateTight", Color = PlacementStateView.TightColor, Unlit = true },
+            new() { Name = "StateOverlap", Color = PlacementStateView.OverlapColor, Unlit = true },
+            new() { Name = "StateOverlapFill", Color = PlacementStateView.OverlapFillColor, Unlit = true, Transparent = true },
         };
 
         [MenuItem(MenuPath)]
@@ -68,7 +70,7 @@ namespace Bangkku.EditorTools
                 else
                 {
                     material = spec.Unlit
-                        ? UrpMaterials.CreateUnlit(spec.Name, spec.Color)
+                        ? UrpMaterials.CreateUnlit(spec.Name, spec.Color, spec.Transparent)
                         : UrpMaterials.CreateLit(spec.Name, spec.Color, spec.Smoothness, spec.Transparent);
                     if (material == null)
                     {
