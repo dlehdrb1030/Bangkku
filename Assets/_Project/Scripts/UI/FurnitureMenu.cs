@@ -1,6 +1,5 @@
 using Bangkku.Core;
 using Bangkku.FloorPlan;
-using Bangkku.Furniture;
 using Bangkku.Placement;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -62,7 +61,6 @@ namespace Bangkku.UI
         string _message;
         bool _messageIsError;
         Vector2 _panelScroll;
-        int _createdCount;
         FloorPlanBuilder _floorPlan;
         GUIStyle _label, _header, _button, _field, _toggle, _box, _error;
 
@@ -166,10 +164,11 @@ namespace Bangkku.UI
             GUI.enabled = true;
         }
 
-        static string DisplayName(FurnitureItem item) =>
+        /// <summary>카탈로그 이름, 없으면 id</summary>
+        public static string DisplayName(FurnitureItem item) =>
             item.Data != null && !string.IsNullOrEmpty(item.Data.Name) ? item.Data.Name : item.ItemId;
 
-        static string StateText(PlacementState state) => state switch
+        public static string StateText(PlacementState state) => state switch
         {
             PlacementState.Overlap => "겹침",
             PlacementState.Tight => "좁음",
@@ -179,10 +178,8 @@ namespace Bangkku.UI
         void Delete(FurnitureItem item)
         {
             if (item == null) return;
-            SelectionManager.Instance.Deselect();
-            Debug.Log($"[방꾸] 가구 삭제: {item.ItemId} ({DisplayName(item)})", this);
             ShowMessage($"{DisplayName(item)} ({item.ItemId}) 를 지웠습니다.", false);
-            Destroy(item.gameObject);
+            BoxFurniture.Delete(item);
         }
 
         // ───────────── 새 박스 가구 ─────────────
@@ -236,38 +233,12 @@ namespace Bangkku.UI
                 return;
             }
 
-            string id = BoxFurniture.NextIdInScene();
-            var item = new CatalogItem
-            {
-                Id = id,
-                Name = string.IsNullOrWhiteSpace(_name) ? id : _name.Trim(),
-                Source = FurnitureSource.Box,
-                Size = size,
-                SizeConfidence = (Confidence)_confidence,
-                Color = BoxFurniture.ColorFor(_createdCount),
-            };
-
-            var position = SpawnPosition();
-            var furniture = BoxFurniture.Create(prefab, item, position, 0f, transform);
-            _createdCount++;
-
-            // 선택한 뒤 다시 놓아서 격자·벽 스냅을 적용한다
-            var selection = SelectionManager.Instance;
-            selection.Select(furniture);
-            selection.MoveSelectedTo(position);
+            var furniture = BoxFurniture.AddNew(prefab, _name, size, (Confidence)_confidence, SpawnPosition(), transform);
             GUIUtility.keyboardControl = 0;
-
-            string summary = $"{item.Name} ({id}) {size.W}×{size.D}×{size.H}mm {item.SizeConfidence.ToJsonValue()}";
-            Debug.Log($"[방꾸] 새 박스 가구: {summary}", furniture);
-            ShowMessage($"{summary} 추가. 드래그로 옮기세요.", false);
+            ShowMessage($"{BoxFurniture.Describe(furniture.Data)} 추가. 드래그로 옮기세요.", false);
         }
 
-        FurnitureItem ResolvePrefab()
-        {
-            if (Prefab != null) return Prefab;
-            var spawner = FindFirstObjectByType<TestFurnitureSpawner>();
-            return spawner != null ? spawner.Prefab : null;
-        }
+        FurnitureItem ResolvePrefab() => BoxFurniture.ResolvePrefab(Prefab);
 
         /// <summary>화면 가운데가 가리키는 바닥. 바닥 밖이면 가장 넓은 방 가운데</summary>
         Vector3 SpawnPosition()
