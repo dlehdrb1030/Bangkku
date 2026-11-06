@@ -176,6 +176,9 @@ namespace Bangkku.FloorPlan
                 t.localRotation = Quaternion.Euler(0f, fixture.Rotation, 0f);
                 t.localScale = size;
 
+                // 고정설비는 JSON 에 신뢰도 칸이 없다 (Data/ 공용 형식). 가장 보수적인 estimated 로 판정한다
+                go.AddComponent<StructureConfidence>().Set(fixture.Id, Confidence.Estimated);
+
                 if (material != null) go.GetComponent<MeshRenderer>().sharedMaterial = material;
             }
 
