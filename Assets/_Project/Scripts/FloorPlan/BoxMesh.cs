@@ -25,12 +25,40 @@ namespace Bangkku.FloorPlan
         /// </summary>
         public static Mesh Create(string name, Vector3 size, Vector3 uvOrigin)
         {
-            var vertices = new List<Vector3>(24);
-            var normals = new List<Vector3>(24);
-            var uvs = new List<Vector2>(24);
-            var triangles = new List<int>(36);
-            var half = size * 0.5f;
+            var parts = new Parts();
+            AppendBox(parts, size, uvOrigin, Vector3.zero, Quaternion.identity);
+            return parts.ToMesh(name);
+        }
 
+        /// <summary>여러 상자를 메쉬 하나로 합칠 때 꼭짓점을 모으는 곳 (걸레받이·문틀처럼 작은 상자가 많을 때)</summary>
+        public class Parts
+        {
+            public readonly List<Vector3> Vertices = new();
+            public readonly List<Vector3> Normals = new();
+            public readonly List<Vector2> Uvs = new();
+            public readonly List<int> Triangles = new();
+
+            public Mesh ToMesh(string name)
+            {
+                var mesh = new Mesh { name = name };
+                // 꼭짓점이 65535 개를 넘으면 32비트 인덱스가 필요하다
+                if (Vertices.Count > ushort.MaxValue) mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+                mesh.SetVertices(Vertices);
+                mesh.SetNormals(Normals);
+                mesh.SetUVs(0, Uvs);
+                mesh.SetTriangles(Triangles, 0);
+                mesh.RecalculateTangents(); // 노멀맵용
+                mesh.RecalculateBounds();
+                return mesh;
+            }
+        }
+
+        /// <summary>
+        /// 크기 size(m) 상자를 position·rotation 에 놓은 꼭짓점을 parts 에 더한다. UV 는 상자 자신의 면 기준 (uvOrigin 참고)
+        /// </summary>
+        public static void AppendBox(Parts parts, Vector3 size, Vector3 uvOrigin, Vector3 position, Quaternion rotation)
+        {
+            var half = size * 0.5f;
             foreach (var n in Normals)
             {
                 FaceAxes(n, out var right, out var up);
@@ -38,26 +66,17 @@ namespace Bangkku.FloorPlan
                 var center = Vector3.Scale(n, half);
                 var r = Vector3.Scale(right, half);
                 var u = Vector3.Scale(up, half);
-                int start = vertices.Count;
+                int start = parts.Vertices.Count;
                 foreach (var corner in new[] { center - r - u, center + r - u, center + r + u, center - r + u })
                 {
-                    vertices.Add(corner);
-                    normals.Add(n);
-                    uvs.Add(FaceUV(corner, n, uvOrigin));
+                    parts.Vertices.Add(position + rotation * corner);
+                    parts.Normals.Add(rotation * n);
+                    parts.Uvs.Add(FaceUV(corner, n, uvOrigin));
                 }
 
                 // 바깥(법선 쪽)에서 볼 때 시계 방향 (Unity 앞면)
-                triangles.AddRange(new[] { start, start + 2, start + 1, start, start + 3, start + 2 });
+                parts.Triangles.AddRange(new[] { start, start + 2, start + 1, start, start + 3, start + 2 });
             }
-
-            var mesh = new Mesh { name = name };
-            mesh.SetVertices(vertices);
-            mesh.SetNormals(normals);
-            mesh.SetUVs(0, uvs);
-            mesh.SetTriangles(triangles, 0);
-            mesh.RecalculateTangents(); // 노멀맵용
-            mesh.RecalculateBounds();
-            return mesh;
         }
 
         /// <summary>

@@ -316,6 +316,7 @@ MonoBehaviour:
   TileMaterial: {fileID: 2100000, guid: 76ee60ccce35d490d9e6856cde176c04, type: 2}
   CeilingMaterial: {fileID: 2100000, guid: 3c17e635396ae4c99b617fd3a71e61e5, type: 2}
   FixtureMaterial: {fileID: 2100000, guid: e0439673026a64c58b54754fda629e41, type: 2}
+  TrimMaterial: {fileID: 2100000, guid: 15674526f258040da8fb457048e54c6a, type: 2}
 --- !u!4 &296290329
 Transform:
   m_ObjectHideFlags: 0
