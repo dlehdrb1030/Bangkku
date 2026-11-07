@@ -37,8 +37,17 @@ namespace Bangkku.FloorPlan
         [Tooltip("천장 재질. 비워 두면 흰색")]
         public Material CeilingMaterial;
 
-        [Tooltip("고정설비 박스 재질. 비워 두면 연한 베이지")]
+        [Tooltip("고정설비 몸통·문짝 재질. 비워 두면 연한 베이지")]
         public Material FixtureMaterial;
+
+        [Tooltip("고정설비 도기·상판 재질 (변기·세면대·싱크대 상판·냉장고). 비워 두면 흰색 광택")]
+        public Material PorcelainMaterial;
+
+        [Tooltip("고정설비 손잡이·수전·개수대 재질. 비워 두면 은색 금속")]
+        public Material MetalMaterial;
+
+        [Tooltip("고정설비 어두운 부분 재질 (걸레받이 자리·쿡탑). 비워 두면 짙은 회색")]
+        public Material DarkMaterial;
 
         [Tooltip("걸레받이·문틀·창틀 재질. 비워 두면 흰색")]
         public Material TrimMaterial;
@@ -169,16 +178,46 @@ namespace Bangkku.FloorPlan
             }
         }
 
-        /// <summary>고정설비를 박스(BoxCollider, Layer Fixture)로 만든다. position 은 바닥면 중앙, rotation 은 Y축 (도).</summary>
+        /// <summary>
+        /// 고정설비 (Layer Fixture, size 크기 BoxCollider). position 은 바닥면 중앙, rotation 은 Y축 (도).
+        /// 아는 type(counter, cabinet, wardrobe, fridge, toilet, washbasin)은 모양(FixtureModels)으로 그리고, 모르는 type 은 상자로 그린다.
+        /// 판정은 어느 쪽이든 같은 size 상자(BoxCollider)로 한다.
+        /// </summary>
         int BuildFixtures(Transform parent)
         {
             var material = Pick(FixtureMaterial, "Fixture", new Color(0.88f, 0.86f, 0.80f));
+            var modelMaterials = new Material[FixtureModels.PartCount];
+            modelMaterials[(int)FixturePart.Body] = material;
+            modelMaterials[(int)FixturePart.Porcelain] = PickLit(PorcelainMaterial, "Porcelain", new Color(0.95f, 0.95f, 0.94f), 0.85f, 0f);
+            modelMaterials[(int)FixturePart.Metal] = PickLit(MetalMaterial, "Metal", new Color(0.78f, 0.79f, 0.80f), 0.7f, 0.6f);
+            modelMaterials[(int)FixturePart.Dark] = PickLit(DarkMaterial, "Dark", new Color(0.16f, 0.16f, 0.17f), 0.6f, 0f);
+
             foreach (var fixture in Data.Fixtures)
             {
                 var size = fixture.SizeMeters();
-                // 벽과 같은 m 단위 UV 상자 (스케일 1, 크기는 메쉬·BoxCollider)
-                var go = BoxMesh.CreateObject(fixture.Id, parent, Units.PlanToWorld(fixture.Position, size.y * 0.5f),
-                    Quaternion.Euler(0f, fixture.Rotation, 0f), size, material, _meshes);
+                var position = Units.PlanToWorld(fixture.Position, size.y * 0.5f);
+                var rotation = Quaternion.Euler(0f, fixture.Rotation, 0f);
+                var model = FixtureModels.Build(fixture.Type, size);
+                GameObject go;
+                if (model != null)
+                {
+                    // 상자 가운데에 놓인 오브젝트라 바닥 기준 모양을 높이 절반만큼 내린다
+                    go = new GameObject(fixture.Id);
+                    go.transform.SetParent(parent, false);
+                    go.transform.localPosition = position;
+                    go.transform.localRotation = rotation;
+                    var mesh = model.ToMesh(fixture.Id, new Vector3(0f, -size.y * 0.5f, 0f));
+                    _meshes.Add(mesh);
+                    go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                    go.AddComponent<MeshRenderer>().sharedMaterials = modelMaterials;
+                    go.AddComponent<BoxCollider>().size = size;
+                }
+                else
+                {
+                    // 벽과 같은 m 단위 UV 상자 (스케일 1, 크기는 메쉬·BoxCollider)
+                    go = BoxMesh.CreateObject(fixture.Id, parent, position, rotation, size, material, _meshes);
+                }
+
                 go.layer = Layers.Fixture;
 
                 // 고정설비는 JSON 에 신뢰도 칸이 없다 (Data/ 공용 형식). 가장 보수적인 estimated 로 판정한다
@@ -272,6 +311,16 @@ namespace Bangkku.FloorPlan
             if (!_fallbackMaterials.TryGetValue(fallbackName, out var material))
                 _fallbackMaterials[fallbackName] = material =
                     UrpMaterials.CreateLit(fallbackName + " (자동 생성)", color, transparent ? 0.9f : 0.5f, transparent);
+            return material;
+        }
+
+        /// <summary>Pick 과 같고, 코드로 만들 때 매끈함·금속성을 정한다 (고정설비 모델 재질)</summary>
+        Material PickLit(Material assigned, string fallbackName, Color color, float smoothness, float metallic)
+        {
+            if (assigned != null) return assigned;
+            if (!_fallbackMaterials.TryGetValue(fallbackName, out var material))
+                _fallbackMaterials[fallbackName] = material =
+                    UrpMaterials.CreateLit(fallbackName + " (자동 생성)", color, smoothness, false, metallic);
             return material;
         }
 
