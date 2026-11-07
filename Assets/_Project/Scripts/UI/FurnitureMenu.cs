@@ -1,5 +1,6 @@
 using Bangkku.Core;
 using Bangkku.FloorPlan;
+using Bangkku.IO;
 using Bangkku.Placement;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -9,7 +10,8 @@ namespace Bangkku.UI
 {
     /// <summary>
     /// 가구 메뉴 - 데스크톱 화면 UI (팀장 가이드 3주차 ⑥). 화면 오른쪽 패널.
-    /// 화면이 작으면 패널 안을 휠로 스크롤한다 (위: 새 박스 가구, 아래: 배치된 가구 목록).
+    /// 화면이 작으면 패널 안을 휠로 스크롤한다 (위: 배치 저장·불러오기, 새 박스 가구, 아래: 배치된 가구 목록).
+    /// - 배치 저장·불러오기: LayoutSaver (persistentDataPath/layouts/&lt;평면도 이름&gt;.json). 불러오면 지금 가구를 지우고 저장한 대로 다시 만든다
     /// - 배치된 가구 목록: 누르면 선택, 선택한 가구 삭제
     /// - 새 박스 가구: 이름, W·D·H (mm), 치수 신뢰도(실측·도면·추정)를 넣고 추가 → 화면 가운데 바닥(바닥이 아니면 가장 넓은 방 가운데)에 만들고 선택
     ///   id 는 box_01, box_02 … 로 자동. source = box 라서 팀원의 catalog.json 없이 동작한다
@@ -61,6 +63,9 @@ namespace Bangkku.UI
         string _message;
         bool _messageIsError;
         Vector2 _panelScroll;
+        string _layoutMessage;
+        bool _layoutMessageIsError, _hasSave;
+        float _nextSaveCheck;
         FloorPlanBuilder _floorPlan;
         GUIStyle _label, _header, _button, _field, _toggle, _box, _error;
 
@@ -128,6 +133,8 @@ namespace Bangkku.UI
 
             // 화면이 작아도 아래 내용에 닿도록 패널 전체를 스크롤한다. 자주 쓰는 입력칸을 위에 둔다
             _panelScroll = GUILayout.BeginScrollView(_panelScroll);
+            DrawLayout();
+            GUILayout.Space(12f);
             DrawNewBox();
             GUILayout.Space(12f);
             DrawPlacedList();
@@ -135,6 +142,41 @@ namespace Bangkku.UI
             GUILayout.EndArea();
 
             IsTyping = GUIUtility.keyboardControl != 0;
+        }
+
+        // ───────────── 배치 저장·불러오기 ─────────────
+
+        void DrawLayout()
+        {
+            // 파일이 있는지는 1초마다 한 번만 본다 (OnGUI 는 한 프레임에 여러 번 불린다)
+            if (Time.unscaledTime >= _nextSaveCheck)
+            {
+                _nextSaveCheck = Time.unscaledTime + 1f;
+                _hasSave = LayoutSaver.HasSave(out _);
+            }
+
+            GUILayout.Label("배치 저장", _header);
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("저장", _button, GUILayout.Height(28f))) SaveLayout();
+            GUI.enabled = _hasSave;
+            if (GUILayout.Button("불러오기", _button, GUILayout.Height(28f))) LoadLayout();
+            GUI.enabled = true;
+            GUILayout.EndHorizontal();
+            if (!string.IsNullOrEmpty(_layoutMessage)) GUILayout.Label(_layoutMessage, _layoutMessageIsError ? _error : _label);
+        }
+
+        void SaveLayout()
+        {
+            bool ok = LayoutSaver.Save(out _layoutMessage);
+            _layoutMessageIsError = !ok;
+            _nextSaveCheck = 0f;
+        }
+
+        /// <summary>지금 가구를 지우고 저장한 배치로 바꾼다</summary>
+        void LoadLayout()
+        {
+            bool ok = LayoutSaver.Load(ResolvePrefab(), transform, out _layoutMessage);
+            _layoutMessageIsError = !ok;
         }
 
         // ───────────── 배치된 가구 목록 ─────────────
