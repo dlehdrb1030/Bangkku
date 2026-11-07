@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Bangkku.Core;
 using Bangkku.FloorPlan;
 using Bangkku.Furniture;
+using Bangkku.IO;
 using Bangkku.Placement;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -17,6 +18,7 @@ namespace Bangkku.UI
     /// - W·D·H: -100 / -10 / +10 / +100 (mm), 신뢰도: 실측·도면·추정
     /// - 추가: 바라보는 방향 앞 바닥(바닥 밖이면 가장 넓은 방 가운데)에 박스 가구를 만들고 선택 (데스크톱 메뉴와 같은 BoxFurniture.AddNew)
     /// - 선택: 이전·다음으로 배치된 가구를 돌아가며 선택, 삭제. 선택한 가구 정보는 StatusPanel.CompactText (치수·신뢰도·가장 가까운 대상)
+    /// - 배치 저장·불러오기: LayoutSaver (데스크톱 메뉴와 같은 파일)
     /// - 접기: 제목 줄만 남긴다
     /// 패널은 손목 위 Offset 자리에 두고 항상 머리 쪽을 보게 돌린다.
     /// EventSystem 이 없으면 XRUIInputModule 과 함께 만든다 (XR 레이로 UI 를 누르는 데 필요).
@@ -233,6 +235,19 @@ namespace Bangkku.UI
             BoxFurniture.Delete(item);
         }
 
+        void SaveLayout()
+        {
+            LayoutSaver.Save(out string message);
+            _infoText.text = message;
+        }
+
+        /// <summary>지금 가구를 지우고 저장한 배치로 바꾼다 (데스크톱 메뉴와 같은 파일)</summary>
+        void LoadLayout()
+        {
+            LayoutSaver.Load(BoxFurniture.ResolvePrefab(Prefab), transform, out string message);
+            _infoText.text = message;
+        }
+
         void ToggleOpen()
         {
             _open = !_open;
@@ -322,6 +337,10 @@ namespace Bangkku.UI
             MakeButton(selectRow, "◀ 이전", () => SelectNext(-1), ButtonColor);
             MakeButton(selectRow, "다음 ▶", () => SelectNext(1), ButtonColor);
             MakeButton(selectRow, "삭제", DeleteSelected, DeleteColor);
+
+            var layoutRow = Row(body, 52f);
+            MakeButton(layoutRow, "배치 저장", SaveLayout, ButtonColor);
+            MakeButton(layoutRow, "배치 불러오기", LoadLayout, ButtonColor);
 
             _infoText = Label(body, "", FontSize - 4, FontStyle.Normal, 0f);
         }
