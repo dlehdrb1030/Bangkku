@@ -10,6 +10,7 @@ namespace Bangkku.EditorTools
     /// 메뉴 Tools > 방꾸 > 방 텍스처 생성·적용
     /// 1. ProceduralTextures 로 마루·타일·벽지·천장 텍스처(색 + 노멀맵)를 그려 Materials/Textures/ 에 PNG 로 저장한다 (같은 결과가 나오므로 여러 번 실행해도 됨)
     /// 2. Materials 의 Floor·Tile·Wall·Ceiling 재질에 Base Map·Normal Map 을 넣고 Tiling 을 텍스처 실제 크기(m)에 맞춘다 (UV 1 = 1m)
+    /// 3. 창밖 풍경 파노라마(ExteriorPanorama)를 그려 Exterior 재질에 넣는다 (가로 = 한 바퀴)
     /// 재질의 Base Map 에 다른 텍스처(직접 넣은 사진 등)가 이미 있으면 그 재질은 건드리지 않는다.
     /// 재질이 없으면 먼저 Tools > 방꾸 > 재질 생성·연결 을 실행한다.
     /// </summary>
@@ -61,8 +62,8 @@ namespace Bangkku.EditorTools
                     var result = spec.Generate();
                     string albedoPath = $"{TextureFolder}/{spec.Texture}_Albedo.png";
                     string normalPath = $"{TextureFolder}/{spec.Texture}_Normal.png";
-                    WritePng(albedoPath, result.Albedo, result.Size);
-                    WritePng(normalPath, ProceduralTextures.NormalFromHeight(result.Height, result.Size, spec.NormalStrength), result.Size);
+                    WritePng(albedoPath, result.Albedo, result.Size, result.Size);
+                    WritePng(normalPath, ProceduralTextures.NormalFromHeight(result.Height, result.Size, spec.NormalStrength), result.Size, result.Size);
                     ConfigureImporter(albedoPath, false);
                     ConfigureImporter(normalPath, true);
 
@@ -85,6 +86,9 @@ namespace Bangkku.EditorTools
                     Apply(material, albedo, normal, result.Meters, spec);
                     applied.Add($"{spec.Material} ← {spec.Texture} ({result.Meters}m 한 장)");
                 }
+
+                EditorUtility.DisplayProgressBar("방 텍스처 생성", "창밖 풍경", 0.95f);
+                ApplyExterior(applied, skipped, missing);
             }
             finally
             {
@@ -102,9 +106,64 @@ namespace Bangkku.EditorTools
             EditorUtility.DisplayDialog("방 텍스처 생성·적용", report.ToString(), "확인");
         }
 
-        static void WritePng(string path, Color32[] pixels, int size)
+        /// <summary>
+        /// 창밖 풍경 파노라마(ExteriorPanorama)를 그려 Exterior 재질(Unlit)에 넣는다.
+        /// 가로는 한 바퀴라 반복(Repeat), 세로는 원통 위아래 끝 색이 번지지 않게 Clamp
+        /// </summary>
+        static void ApplyExterior(List<string> applied, List<string> skipped, List<string> missing)
         {
-            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            var result = ExteriorPanorama.Generate(PanoramaWidth, PanoramaHeight);
+            string path = $"{TextureFolder}/Exterior_Panorama.png";
+            WritePng(path, result.Pixels, result.Width, result.Height);
+            if (AssetImporter.GetAtPath(path) is TextureImporter importer)
+            {
+                importer.textureType = TextureImporterType.Default;
+                importer.sRGBTexture = true;
+                importer.wrapModeU = TextureWrapMode.Repeat;
+                importer.wrapModeV = TextureWrapMode.Clamp;
+                importer.mipmapEnabled = true;
+                importer.filterMode = FilterMode.Trilinear;
+                importer.anisoLevel = 4;
+                importer.maxTextureSize = Mathf.Max(PanoramaWidth, PanoramaHeight); // 기본 2048 이면 가로가 줄어든다
+                importer.alphaSource = TextureImporterAlphaSource.None;
+                importer.SaveAndReimport();
+            }
+
+            var material = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialFolder}/Exterior.mat");
+            if (material == null)
+            {
+                missing.Add("Exterior");
+                return;
+            }
+
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            var current = material.GetTexture("_BaseMap");
+            if (current != null && current != texture)
+            {
+                skipped.Add($"Exterior (Base Map 에 {current.name} 이 있음)");
+                return;
+            }
+
+            Undo.RecordObject(material, "창밖 풍경 적용");
+            material.SetColor("_BaseColor", Color.white);
+            material.SetTexture("_BaseMap", texture);
+            material.SetTextureScale("_BaseMap", Vector2.one);
+            if (material.HasProperty("_MainTex"))
+            {
+                material.SetTexture("_MainTex", texture);
+                material.SetTextureScale("_MainTex", Vector2.one);
+            }
+
+            EditorUtility.SetDirty(material);
+            applied.Add("Exterior ← 창밖 풍경 파노라마");
+        }
+
+        const int PanoramaWidth = 4096;
+        const int PanoramaHeight = 512;
+
+        static void WritePng(string path, Color32[] pixels, int width, int height)
+        {
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
             try
             {
                 texture.SetPixels32(pixels);
