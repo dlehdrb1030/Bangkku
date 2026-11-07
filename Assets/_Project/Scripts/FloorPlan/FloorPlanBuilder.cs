@@ -43,6 +43,9 @@ namespace Bangkku.FloorPlan
         [Tooltip("걸레받이·문틀·창틀 재질. 비워 두면 흰색")]
         public Material TrimMaterial;
 
+        [Tooltip("창밖 풍경 재질 (Unlit + 파노라마, Tools > 방꾸 > 방 텍스처 생성·적용). 비워 두면 창밖 풍경을 만들지 않음 (하늘만 보임)")]
+        public Material ExteriorMaterial;
+
         /// <summary>평면도를 (다시) 만들 때마다 끝에서 불린다. 바닥에 텔레포트 영역을 붙이는 등 생성물에 기능을 더하는 용도 (XRRigSetup)</summary>
         public event Action<FloorPlanBuilder> Built;
 
@@ -91,6 +94,7 @@ namespace Bangkku.FloorPlan
             int floorCount = BuildFloors(CreateChild("Floors", GeneratedRoot), CreateChild("Ceiling", GeneratedRoot));
             int fixtureCount = BuildFixtures(CreateChild("Fixtures", GeneratedRoot));
             int trimCount = BuildTrim(GeneratedRoot);
+            BuildExterior(GeneratedRoot);
 
             Debug.Log($"[방꾸] 평면도 {Data.Name} 생성: 벽 조각 {wallCount}개, 유리 {glassCount}개 (개구부 {Data.Openings.Count}개), " +
                       $"바닥·천장 {floorCount}/{Data.Floors.Count}개, 고정설비 {fixtureCount}개, 걸레받이·문틀·창틀 {trimCount}조각", this);
@@ -198,6 +202,25 @@ namespace Bangkku.FloorPlan
             var go = CreateMeshObject("Trim", parent, mesh, Pick(TrimMaterial, "Trim", new Color(0.97f, 0.97f, 0.96f)));
             go.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
             return pieces.Count;
+        }
+
+        /// <summary>
+        /// 창밖 풍경 (ExteriorBuilder). 재질 칸이 비면 만들지 않는다 (파노라마 텍스처가 있어야 의미가 있음).
+        /// 조명·그림자와 무관 (Unlit, 그림자 안 만들고 안 받음), 콜라이더 없음
+        /// </summary>
+        void BuildExterior(Transform parent)
+        {
+            if (ExteriorMaterial == null) return;
+
+            ExteriorBuilder.Placement(Data, out var center, out float radius);
+            var mesh = ExteriorBuilder.CreateMesh(center, radius);
+            _meshes.Add(mesh);
+            var go = CreateMeshObject("Exterior", parent, mesh, ExteriorMaterial);
+            var renderer = go.GetComponent<MeshRenderer>();
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            renderer.lightProbeUsage = LightProbeUsage.Off;
+            renderer.reflectionProbeUsage = ReflectionProbeUsage.Off;
         }
 
         Material FloorMaterialFor(FloorData floor)
