@@ -11,7 +11,7 @@ namespace Bangkku.FloorPlan
     /// 씬 원점에 둔 빈 오브젝트에 붙이고 Floor Plan Json 에 JSON 을 넣으면 Play 할 때 만든다.
     /// 다른 평면도는 JSON 만 바꾸면 된다.
     /// 만든 오브젝트는 이 오브젝트 아래 "Generated" 에 모인다 (씬에 저장되지 않음).
-    /// 재질 칸을 비워 두면 단색 재질을 코드로 만든다 (벽만 큐브 기본 재질).
+    /// 재질 칸을 비워 두면 단색 재질을 코드로 만든다.
     /// </summary>
     public class FloorPlanBuilder : MonoBehaviour
     {
@@ -22,7 +22,7 @@ namespace Bangkku.FloorPlan
         public TextAsset FloorPlanJson;
 
         [Header("재질 (비워 두면 코드로 만든 단색)")]
-        [Tooltip("벽 재질. 비워 두면 큐브 기본 재질")]
+        [Tooltip("벽 재질. 비워 두면 미색")]
         public Material WallMaterial;
 
         [Tooltip("창 유리 재질 (URP Lit, Surface Type = Transparent). 비워 두면 반투명 하늘색")]
@@ -39,6 +39,9 @@ namespace Bangkku.FloorPlan
 
         [Tooltip("고정설비 박스 재질. 비워 두면 연한 베이지")]
         public Material FixtureMaterial;
+
+        [Tooltip("걸레받이·문틀·창틀 재질. 비워 두면 흰색")]
+        public Material TrimMaterial;
 
         /// <summary>평면도를 (다시) 만들 때마다 끝에서 불린다. 바닥에 텔레포트 영역을 붙이는 등 생성물에 기능을 더하는 용도 (XRRigSetup)</summary>
         public event Action<FloorPlanBuilder> Built;
@@ -87,9 +90,10 @@ namespace Bangkku.FloorPlan
             var (wallCount, glassCount) = BuildWalls(CreateChild("Walls", GeneratedRoot));
             int floorCount = BuildFloors(CreateChild("Floors", GeneratedRoot), CreateChild("Ceiling", GeneratedRoot));
             int fixtureCount = BuildFixtures(CreateChild("Fixtures", GeneratedRoot));
+            int trimCount = BuildTrim(GeneratedRoot);
 
             Debug.Log($"[방꾸] 평면도 {Data.Name} 생성: 벽 조각 {wallCount}개, 유리 {glassCount}개 (개구부 {Data.Openings.Count}개), " +
-                      $"바닥·천장 {floorCount}/{Data.Floors.Count}개, 고정설비 {fixtureCount}개", this);
+                      $"바닥·천장 {floorCount}/{Data.Floors.Count}개, 고정설비 {fixtureCount}개, 걸레받이·문틀·창틀 {trimCount}조각", this);
             Built?.Invoke(this);
             return true;
         }
@@ -178,6 +182,22 @@ namespace Bangkku.FloorPlan
             }
 
             return Data.Fixtures.Count;
+        }
+
+        /// <summary>
+        /// 걸레받이·문틀·창틀 (TrimBuilder). 조각이 많아 메쉬 하나로 합친 오브젝트 "Trim" 하나로 만든다.
+        /// 보이기만 하는 장식이라 콜라이더가 없고(판정은 벽 조각으로), 그림자도 만들지 않는다 (작은 판이라 차이가 거의 없음)
+        /// </summary>
+        int BuildTrim(Transform parent)
+        {
+            var pieces = TrimBuilder.ComputeAll(Data);
+            if (pieces.Count == 0) return 0;
+
+            var mesh = TrimBuilder.CreateMesh("Trim", pieces);
+            _meshes.Add(mesh);
+            var go = CreateMeshObject("Trim", parent, mesh, Pick(TrimMaterial, "Trim", new Color(0.97f, 0.97f, 0.96f)));
+            go.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
+            return pieces.Count;
         }
 
         Material FloorMaterialFor(FloorData floor)
