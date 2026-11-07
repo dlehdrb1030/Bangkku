@@ -39,6 +39,8 @@ namespace Bangkku.EditorTools
             new() { Name = "Ceiling", Color = new Color(0.97f, 0.97f, 0.96f), Smoothness = 0.05f, BuilderField = nameof(FloorPlanBuilder.CeilingMaterial) },
             new() { Name = "Fixture", Color = new Color(0.88f, 0.86f, 0.80f), Smoothness = 0.25f, BuilderField = nameof(FloorPlanBuilder.FixtureMaterial) },
             new() { Name = "Glass", Color = new Color(0.75f, 0.88f, 0.95f, 0.25f), Smoothness = 0.9f, Transparent = true, BuilderField = nameof(FloorPlanBuilder.GlassMaterial) },
+            // 걸레받이·문틀·창틀. 벽지보다 조금 밝고 매끈한 도장 (벽과 구분되도록)
+            new() { Name = "Trim", Color = new Color(0.97f, 0.97f, 0.96f), Smoothness = 0.5f, BuilderField = nameof(FloorPlanBuilder.TrimMaterial) },
 
             // 판정 상태 색 (3주차 윤곽선·상자 표시용). 조명을 받지 않는 단색
             new() { Name = "StateFree", Color = PlacementStateView.FreeColor, Unlit = true },
