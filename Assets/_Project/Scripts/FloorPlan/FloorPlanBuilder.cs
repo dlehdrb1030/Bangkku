@@ -99,7 +99,9 @@ namespace Bangkku.FloorPlan
             WarnIfNotAtOrigin();
 
             GeneratedRoot = CreateChild(GeneratedRootName, transform);
-            var (wallCount, glassCount) = BuildWalls(CreateChild("Walls", GeneratedRoot));
+            var wallRoot = CreateChild("Walls", GeneratedRoot);
+            var (wallCount, glassCount) = BuildWalls(wallRoot);
+            BuildEntranceDoors(wallRoot);
             int floorCount = BuildFloors(CreateChild("Floors", GeneratedRoot), CreateChild("Ceiling", GeneratedRoot));
             int fixtureCount = BuildFixtures(CreateChild("Fixtures", GeneratedRoot));
             int trimCount = BuildTrim(GeneratedRoot);
@@ -126,6 +128,28 @@ namespace Bangkku.FloorPlan
             }
 
             return (wallCount, glassCount);
+        }
+
+        /// <summary>
+        /// 바깥과 이어진 문(현관문)을 닫힌 문짝으로 막는다 (EntranceDoor). 문 밖은 바닥이 없어 VR 에서 걸어 나가면 떨어지기 때문.
+        /// 문짝은 벽처럼 Layer Wall + BoxCollider + 벽 신뢰도, 재질은 Dark. 안쪽 손잡이는 Metal, 콜라이더 없음
+        /// </summary>
+        void BuildEntranceDoors(Transform parent)
+        {
+            var leafMaterial = PickLit(DarkMaterial, "Dark", new Color(0.16f, 0.16f, 0.17f), 0.6f, 0f);
+            var handleMaterial = PickLit(MetalMaterial, "Metal", new Color(0.78f, 0.79f, 0.80f), 0.7f, 0.6f);
+            foreach (var leaf in EntranceDoor.ComputeLeaves(Data))
+            {
+                var rotation = Quaternion.Euler(0f, leaf.YawDegrees, 0f);
+                var go = BoxMesh.CreateObject(leaf.Name, parent, leaf.Center, rotation, leaf.Size, leafMaterial, _meshes);
+                go.layer = Layers.Wall;
+                go.AddComponent<StructureConfidence>().Set(leaf.Wall.Id, leaf.Wall.Confidence);
+
+                var handleMesh = BoxMesh.Create(leaf.Name + "_handle", leaf.HandleSize, Vector3.zero);
+                _meshes.Add(handleMesh);
+                var handle = CreateMeshObject(leaf.Name + "_handle", parent, handleMesh, handleMaterial);
+                handle.transform.SetLocalPositionAndRotation(leaf.HandleCenter, rotation);
+            }
         }
 
         /// <summary>바닥(Layer Floor, MeshCollider)과 같은 모양의 천장을 만든다. 만든 바닥 수를 돌려준다.</summary>
