@@ -22,7 +22,41 @@ namespace Bangkku.FloorPlan
         {
             startMm = default;
             yawDegrees = 0f;
-            if (plan?.Openings == null || plan.Walls == null) return false;
+            var doors = ExteriorDoors(plan);
+            if (doors.Count == 0) return false;
+
+            var door = doors[0];
+            var inward = -door.Outward;
+            startMm = door.CenterMm + inward * (door.HalfThicknessMm + insideMm);
+            // 현관이 insideMm 보다 얕으면 바닥이 있는 곳까지 당긴다
+            if (!IsOnFloor(plan, startMm)) startMm = door.CenterMm + inward * (door.HalfThicknessMm + ProbeMm);
+            yawDegrees = YawFromPlanDirection(inward);
+            return true;
+        }
+
+        /// <summary>바깥과 이어진 문 하나 (한쪽에만 바닥이 있음)</summary>
+        public struct ExteriorDoor
+        {
+            public OpeningData Opening;
+            public WallData Wall;
+
+            /// <summary>문 가운데 (벽 중심선 위, mm)</summary>
+            public Vector2 CenterMm;
+
+            /// <summary>바닥이 없는 쪽(바깥) 방향 단위 벡터 (평면도 좌표)</summary>
+            public Vector2 Outward;
+
+            public float HalfThicknessMm;
+        }
+
+        /// <summary>
+        /// 한쪽에만 바닥이 있는 문 (현관문처럼 집 바깥과 이어진 문). openings 순서대로.
+        /// 양쪽 다 바닥이 있는 문(방·욕실·발코니 문)과 양쪽 다 없는 문은 빠진다
+        /// </summary>
+        public static List<ExteriorDoor> ExteriorDoors(FloorPlanData plan)
+        {
+            var result = new List<ExteriorDoor>();
+            if (plan?.Openings == null || plan.Walls == null) return result;
 
             foreach (var opening in plan.Openings)
             {
@@ -44,15 +78,14 @@ namespace Bangkku.FloorPlan
                 bool minus = IsOnFloor(plan, center - normal * (half + ProbeMm));
                 if (plus == minus) continue; // 양쪽 다 방(욕실·발코니 문)이거나 양쪽 다 바깥
 
-                var inward = plus ? normal : -normal;
-                startMm = center + inward * (half + insideMm);
-                // 현관이 insideMm 보다 얕으면 바닥이 있는 곳까지 당긴다
-                if (!IsOnFloor(plan, startMm)) startMm = center + inward * (half + ProbeMm);
-                yawDegrees = YawFromPlanDirection(inward);
-                return true;
+                result.Add(new ExteriorDoor
+                {
+                    Opening = opening, Wall = wall, CenterMm = center,
+                    Outward = plus ? -normal : normal, HalfThicknessMm = half,
+                });
             }
 
-            return false;
+            return result;
         }
 
         /// <summary>평면도 방향 (mm 좌표계) → Unity Y축 회전 (도). 평면도 Y 는 Unity -Z 이므로 (0, 1) 은 180°</summary>
