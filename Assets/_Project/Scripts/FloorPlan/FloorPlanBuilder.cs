@@ -100,8 +100,10 @@ namespace Bangkku.FloorPlan
             foreach (var piece in WallMeshBuilder.ComputePieces(Data))
             {
                 bool glass = piece.Kind == WallPieceKind.Glass;
-                var material = glass ? Pick(GlassMaterial, "Glass", new Color(0.75f, 0.88f, 0.95f, 0.25f), true) : WallMaterial;
-                WallMeshBuilder.CreatePiece(piece, parent, material);
+                var material = glass
+                    ? Pick(GlassMaterial, "Glass", new Color(0.75f, 0.88f, 0.95f, 0.25f), true)
+                    : Pick(WallMaterial, "Wall", new Color(0.93f, 0.92f, 0.89f));
+                WallMeshBuilder.CreatePiece(piece, parent, material, _meshes);
                 if (glass) glassCount++;
                 else wallCount++;
             }
@@ -166,20 +168,13 @@ namespace Bangkku.FloorPlan
             foreach (var fixture in Data.Fixtures)
             {
                 var size = fixture.SizeMeters();
-                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                go.name = fixture.Id;
+                // 벽과 같은 m 단위 UV 상자 (스케일 1, 크기는 메쉬·BoxCollider)
+                var go = BoxMesh.CreateObject(fixture.Id, parent, Units.PlanToWorld(fixture.Position, size.y * 0.5f),
+                    Quaternion.Euler(0f, fixture.Rotation, 0f), size, material, _meshes);
                 go.layer = Layers.Fixture;
-
-                var t = go.transform;
-                t.SetParent(parent, false);
-                t.localPosition = Units.PlanToWorld(fixture.Position, size.y * 0.5f);
-                t.localRotation = Quaternion.Euler(0f, fixture.Rotation, 0f);
-                t.localScale = size;
 
                 // 고정설비는 JSON 에 신뢰도 칸이 없다 (Data/ 공용 형식). 가장 보수적인 estimated 로 판정한다
                 go.AddComponent<StructureConfidence>().Set(fixture.Id, Confidence.Estimated);
-
-                if (material != null) go.GetComponent<MeshRenderer>().sharedMaterial = material;
             }
 
             return Data.Fixtures.Count;

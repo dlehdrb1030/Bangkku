@@ -163,28 +163,21 @@ namespace Bangkku.FloorPlan
         }
 
         /// <summary>
-        /// 조각 하나를 큐브(MeshRenderer + BoxCollider, Layer = Wall)로 만든다.
+        /// 조각 하나를 상자(MeshRenderer + BoxCollider, Layer = Wall)로 만든다.
+        /// 스케일 1 의 실제 크기 메쉬에 m 단위 UV 를 줘서 벽지 텍스처가 늘어나지 않고, 같은 벽의 조각 사이에서 무늬가 이어진다 (BoxMesh).
         /// 유리판도 Layer = Wall 이다 (가구가 창을 뚫고 놓이지 않도록).
+        /// 만든 메쉬를 meshes 에 담는다 (평면도를 다시 만들 때 지우도록).
         /// </summary>
-        /// <param name="material">null 이면 큐브 기본 재질</param>
-        public static GameObject CreatePiece(WallPiece piece, Transform parent, Material material)
+        public static GameObject CreatePiece(WallPiece piece, Transform parent, Material material, List<Mesh> meshes = null)
         {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            go.name = piece.Name;
+            var go = BoxMesh.CreateObject(piece.Name, parent, piece.Center, Quaternion.Euler(0f, piece.YawDegrees, 0f),
+                piece.Size, material, meshes);
             go.layer = Layers.Wall;
-
-            var t = go.transform;
-            t.SetParent(parent, false);
-            t.localPosition = piece.Center;
-            t.localRotation = Quaternion.Euler(0f, piece.YawDegrees, 0f);
-            t.localScale = piece.Size;
 
             // 좁음 판정이 이 조각의 신뢰도 여유값을 읽는다 (유리판은 그 창이 있는 벽의 신뢰도)
             go.AddComponent<StructureConfidence>().Set(piece.WallId, piece.Confidence);
 
-            var meshRenderer = go.GetComponent<MeshRenderer>();
-            if (material != null) meshRenderer.sharedMaterial = material;
-            if (piece.Kind == WallPieceKind.Glass) meshRenderer.shadowCastingMode = ShadowCastingMode.Off;
+            if (piece.Kind == WallPieceKind.Glass) go.GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
             return go;
         }
     }
