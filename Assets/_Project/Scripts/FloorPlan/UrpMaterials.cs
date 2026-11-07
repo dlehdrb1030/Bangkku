@@ -16,13 +16,13 @@ namespace Bangkku.FloorPlan
         /// URP Lit 단색 재질. transparent 면 Inspector 에서 Surface Type 을 Transparent(Alpha) 로 바꾼 것과 같다.
         /// 셰이더를 찾지 못하면 경고하고 null.
         /// </summary>
-        public static Material CreateLit(string materialName, Color color, float smoothness = 0.5f, bool transparent = false)
+        public static Material CreateLit(string materialName, Color color, float smoothness = 0.5f, bool transparent = false, float metallic = 0f)
         {
             var material = Create(LitShaderName, materialName, color);
             if (material == null) return null;
 
             material.SetFloat("_Smoothness", smoothness);
-            material.SetFloat("_Metallic", 0f);
+            material.SetFloat("_Metallic", metallic);
             if (transparent) MakeTransparent(material);
             return material;
         }

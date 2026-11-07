@@ -24,6 +24,7 @@ namespace Bangkku.EditorTools
             public string Name;
             public Color Color;
             public float Smoothness;
+            public float Metallic;
             public bool Transparent;
             public bool Unlit;
 
@@ -38,6 +39,10 @@ namespace Bangkku.EditorTools
             new() { Name = "Tile", Color = new Color(0.80f, 0.82f, 0.83f), Smoothness = 0.55f, BuilderField = nameof(FloorPlanBuilder.TileMaterial) },
             new() { Name = "Ceiling", Color = new Color(0.97f, 0.97f, 0.96f), Smoothness = 0.05f, BuilderField = nameof(FloorPlanBuilder.CeilingMaterial) },
             new() { Name = "Fixture", Color = new Color(0.88f, 0.86f, 0.80f), Smoothness = 0.25f, BuilderField = nameof(FloorPlanBuilder.FixtureMaterial) },
+            // 고정설비 모델 (FixtureModels): 도기·상판, 손잡이·수전, 어두운 부분
+            new() { Name = "Porcelain", Color = new Color(0.95f, 0.95f, 0.94f), Smoothness = 0.85f, BuilderField = nameof(FloorPlanBuilder.PorcelainMaterial) },
+            new() { Name = "Metal", Color = new Color(0.78f, 0.79f, 0.80f), Smoothness = 0.7f, Metallic = 0.6f, BuilderField = nameof(FloorPlanBuilder.MetalMaterial) },
+            new() { Name = "Dark", Color = new Color(0.16f, 0.16f, 0.17f), Smoothness = 0.6f, BuilderField = nameof(FloorPlanBuilder.DarkMaterial) },
             new() { Name = "Glass", Color = new Color(0.75f, 0.88f, 0.95f, 0.25f), Smoothness = 0.9f, Transparent = true, BuilderField = nameof(FloorPlanBuilder.GlassMaterial) },
             // 걸레받이·문틀·창틀. 벽지보다 조금 밝고 매끈한 도장 (벽과 구분되도록)
             new() { Name = "Trim", Color = new Color(0.97f, 0.97f, 0.96f), Smoothness = 0.5f, BuilderField = nameof(FloorPlanBuilder.TrimMaterial) },
@@ -75,7 +80,7 @@ namespace Bangkku.EditorTools
                 {
                     material = spec.Unlit
                         ? UrpMaterials.CreateUnlit(spec.Name, spec.Color, spec.Transparent)
-                        : UrpMaterials.CreateLit(spec.Name, spec.Color, spec.Smoothness, spec.Transparent);
+                        : UrpMaterials.CreateLit(spec.Name, spec.Color, spec.Smoothness, spec.Transparent, spec.Metallic);
                     if (material == null)
                     {
                         EditorUtility.DisplayDialog("방꾸", "URP 셰이더를 찾지 못했습니다. Console 을 확인하세요.", "확인");
