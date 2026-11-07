@@ -18,6 +18,7 @@ namespace Bangkku.Input
     ///    손의 Near-Far Interactor 는 원거리 레이에 같은 Layer 를, 근거리 구에 Furniture 를 더한다 (가구 잡기).
     /// 3. 처음 한 번 XR Origin 을 현관문 안쪽에 놓고 방 안쪽을 보게 한다 (평면도에서 자동으로 찾음).
     /// 4. VR 기기 없이(XR Device Simulator) 실행하면 눈높이를 서 있는 성인 높이(기본 1.6m)로 맞춘다.
+    /// 5. 바닥 밖으로 떨어지면(바닥보다 2m 아래) 시작 위치로 되돌린다.
     /// 씬 오브젝트 하나에 붙이고 Floor Plan 과 Origin 을 지정한다. 비워 두면 씬에서 찾는다.
     /// </summary>
     public class XRRigSetup : MonoBehaviour
@@ -55,6 +56,10 @@ namespace Bangkku.Input
                  "Starter Assets 기본값은 1.36 이라 앉은 눈높이처럼 가구가 크게 보인다")]
         public float SimulatorEyeHeightMeters = 1.6f;
 
+        [Header("떨어짐 복구")]
+        [Tooltip("XR Origin 이 바닥보다 이만큼(m) 아래로 떨어지면 시작 위치로 되돌린다 (바닥 밖으로 나가 중력으로 떨어졌을 때). 0 이면 끔")]
+        public float ResetBelowMeters = 2f;
+
         bool _moved;
 
         void OnEnable()
@@ -83,6 +88,16 @@ namespace Bangkku.Input
         }
 
         void OnBuilt(FloorPlanBuilder builder) => Apply();
+
+        void Update()
+        {
+            // 현관문은 막아 두었지만, 다른 틈으로 바닥 밖에 나가 떨어져도 계속 떨어지지 않게 한다
+            if (ResetBelowMeters <= 0f || !_moved || Origin == null || FloorPlan == null || FloorPlan.Data == null) return;
+            if (Origin.position.y >= -ResetBelowMeters) return;
+
+            Debug.Log("[방꾸] 바닥 밖으로 떨어져서 시작 위치로 되돌립니다.", this);
+            MoveOriginToStart();
+        }
 
         void Apply()
         {
