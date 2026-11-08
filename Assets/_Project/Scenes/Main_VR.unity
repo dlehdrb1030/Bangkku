@@ -491,6 +491,7 @@ MonoBehaviour:
   StartYawDegrees: 180
   ApplySimulatorEyeHeight: 1
   SimulatorEyeHeightMeters: 1.6
+  ResetBelowMeters: 2
 --- !u!4 &705946131
 Transform:
   m_ObjectHideFlags: 0
