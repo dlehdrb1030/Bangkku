@@ -47,6 +47,8 @@ Project Settings는 저장소에 커밋되어 있으므로 clone한 사람은 �
 | [docs/03_방꾸_Unity_프로젝트설정.md](docs/03_방꾸_Unity_프로젝트설정.md) | Unity 버전, 패키지, Project Settings |
 | [docs/04_방꾸_공용코드_안내.md](docs/04_방꾸_공용코드_안내.md) | 공용 코드(Core·Data) 사용법, 팀원 공지, 변경 기록 |
 | [docs/05_방꾸_진행현황.md](docs/05_방꾸_진행현황.md) | 진행 현황, 리뷰·결정 대기, 다음 작업 순서 |
+| [docs/06_방꾸_Windows_세팅_데스크톱테스트.md](docs/06_방꾸_Windows_세팅_데스크톱테스트.md) | Windows VR PC 세팅, 데스크톱 모드·빌드 테스트, 3DGS 로컬 테스트 |
+| [docs/07_방꾸_VR_테스트.md](docs/07_방꾸_VR_테스트.md) | Quest + Link 연결, VR 기본·3DGS 테스트, FPS 측정, 되돌리기·기록 |
 | [CLAUDE.md](CLAUDE.md) | Claude Code 작업 규칙 |
 
 ## 폴더
