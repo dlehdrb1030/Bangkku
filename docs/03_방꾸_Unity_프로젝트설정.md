@@ -66,7 +66,7 @@
 | XR Interaction Toolkit | `com.unity.xr.interaction.toolkit` | 3.x. Samples 탭에서 **Starter Assets**, **XR Device Simulator** 임포트 |
 | Input System | `com.unity.inputsystem` | XRI 설치 시 같이 설치됨 |
 | Newtonsoft Json | `com.unity.nuget.newtonsoft-json` | "Add package by name"으로 입력 |
-| 3DGS 플러그인 | aras-p/UnityGaussianSplatting | **팀원이 설치**, 사용 버전(릴리스 태그나 커밋)을 README에 기록 |
+| 3DGS 플러그인 | aras-p/UnityGaussianSplatting **v2.0.0** | **팀원이 설치**. git URL `https://github.com/aras-p/UnityGaussianSplatting.git?path=/package#v2.0.0` (11-12 결정, 04 문서 4.7) |
 
 선택:
 - Meta XR Simulator: 맥에서 Quest 컨트롤러 시뮬레이션이 더 필요할 때
