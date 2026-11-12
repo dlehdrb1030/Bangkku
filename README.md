@@ -17,7 +17,7 @@ VR 기반 가구 배치 시뮬레이션. 가상현실 과목 Term Project.
 | XR Interaction Toolkit | 3.3.2 |
 | Input System | 1.20.1 |
 | Newtonsoft Json | 3.2.2 |
-| 3DGS 플러그인 | aras-p/UnityGaussianSplatting `미정` (팀원이 설치 후 릴리스 태그 또는 커밋 기록) |
+| 3DGS 플러그인 | aras-p/UnityGaussianSplatting **v2.0.0** (11-12 결정, 설치는 팀원. `docs/04` 4.7) |
 | Windows VR PC 담당 | `미정` |
 
 Unity Hub 모듈: Android Build Support (OpenJDK, Android SDK & NDK Tools 포함). Windows VR PC에서는 Windows Build Support도 설치.
@@ -49,6 +49,7 @@ Project Settings는 저장소에 커밋되어 있으므로 clone한 사람은 �
 | [docs/05_방꾸_진행현황.md](docs/05_방꾸_진행현황.md) | 진행 현황, 리뷰·결정 대기, 다음 작업 순서 |
 | [docs/06_방꾸_Windows_세팅_데스크톱테스트.md](docs/06_방꾸_Windows_세팅_데스크톱테스트.md) | Windows VR PC 세팅, 데스크톱 모드·빌드 테스트, 3DGS 로컬 테스트 |
 | [docs/07_방꾸_VR_테스트.md](docs/07_방꾸_VR_테스트.md) | Quest + Link 연결, VR 기본·3DGS 테스트, FPS 측정, 되돌리기·기록 |
+| [docs/09_방꾸_팀원_가구작업_안내.md](docs/09_방꾸_팀원_가구작업_안내.md) | 팀원 가구 작업: 브랜치 정리, 정할 것, 단계별 할 일, PR 확인, 팀장에게 넘길 것 |
 | [CLAUDE.md](CLAUDE.md) | Claude Code 작업 규칙 |
 
 ## 폴더
