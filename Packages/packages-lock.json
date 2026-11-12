@@ -11,7 +11,7 @@
     },
     "com.unity.burst": {
       "version": "1.8.31",
-      "depth": 2,
+      "depth": 1,
       "source": "registry",
       "dependencies": {
         "com.unity.mathematics": "1.2.1",
@@ -28,7 +28,7 @@
     },
     "com.unity.collections": {
       "version": "2.7.1",
-      "depth": 2,
+      "depth": 1,
       "source": "registry",
       "dependencies": {
         "com.unity.burst": "1.8.29",
@@ -546,6 +546,17 @@
         "com.unity.modules.jsonserialize": "1.0.0",
         "com.unity.modules.subsystems": "1.0.0"
       }
+    },
+    "org.nesnausk.gaussian-splatting": {
+      "version": "https://github.com/aras-p/UnityGaussianSplatting.git?path=/package#v2.0.0",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.burst": "1.8.8",
+        "com.unity.collections": "2.1.4",
+        "com.unity.mathematics": "1.2.6"
+      },
+      "hash": "0cc0bf8bb0e9af75ff1c002592024f86057ced58"
     }
   }
 }
