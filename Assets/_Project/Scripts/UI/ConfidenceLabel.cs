@@ -88,8 +88,9 @@ namespace Bangkku.UI
             foreach (var tag in _tags.Values) tag.Seen = false;
 
             // 가구가 없는 씬(Test_FloorPlan 등)에서는 SelectionManager 를 만들지 않도록 먼저 본다
+            // 뷰어 모드에서는 Mode 와 상관없이 모두 숨긴다 (편집 모드로 돌아오면 원래 Mode 대로)
             var cam = Camera.main;
-            if (FurnitureItem.All.Count > 0 && cam != null && Mode != ShowMode.Off)
+            if (FurnitureItem.All.Count > 0 && cam != null && Mode != ShowMode.Off && !ViewerMode.Active)
             {
                 var selected = SelectionManager.Instance.Selected;
                 foreach (var item in FurnitureItem.All)

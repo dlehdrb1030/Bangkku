@@ -20,6 +20,7 @@ namespace Bangkku.UI
     /// - 새 박스 가구: 이름, W·D·H (mm), 치수 신뢰도(실측·도면·추정)를 넣고 추가 → 화면 가운데 바닥(바닥이 아니면 가장 넓은 방 가운데)에 만들고 선택
     ///   id 는 box_01, box_02 … 로 자동. source = box 라서 팀원의 catalog.json 없이 동작한다
     /// - Tab: 열기·닫기. 입력칸에 글자를 넣는 동안에는 DesktopController 의 Q/E·WASD 가 가구·시점을 움직이지 않는다
+    /// - 뷰어 버튼(V 키와 같음): 뷰어 모드(ViewerMode)를 켠다. 뷰어 모드에서는 메뉴 대신 "편집 모드로" 버튼 하나만 보인다
     /// VR 기기가 동작 중이면 숨긴다 (VR 손목 메뉴는 다음 작업).
     /// 씬에 빈 오브젝트로 두고 Prefab 칸에 FurnitureItem_Base 를 넣는다 (비워 두면 씬의 TestFurnitureSpawner 프리팹을 쓴다).
     /// </summary>
@@ -72,6 +73,7 @@ namespace Bangkku.UI
         float _nextSaveCheck;
         List<CatalogItem> _catalogItems;
         CatalogItem _pendingCatalog;
+        bool _pendingViewerToggle;
         string _catalogMessage;
         bool _catalogMessageIsError;
         FloorPlanBuilder _floorPlan;
@@ -96,8 +98,16 @@ namespace Bangkku.UI
                 AddCatalog(item);
             }
 
+            // OnGUI 도중에 모드를 바꾸면 Layout 과 Repaint 사이에 그리는 칸이 달라지므로 여기서 바꾼다
+            if (_pendingViewerToggle)
+            {
+                _pendingViewerToggle = false;
+                GUIUtility.keyboardControl = 0;
+                ViewerMode.Toggle();
+            }
+
             var keyboard = Keyboard.current;
-            if (keyboard == null || Hidden || IsTyping) return;
+            if (keyboard == null || Hidden || IsTyping || ViewerMode.Active) return;
             if (keyboard.tabKey.wasPressedThisFrame) _open = !_open;
         }
 
@@ -114,12 +124,25 @@ namespace Bangkku.UI
             var e = Event.current;
             float x = Screen.width - PanelWidth - 8f;
 
+            // 뷰어 모드: 화면을 가리지 않도록 돌아가는 버튼 하나만
+            if (ViewerMode.Active)
+            {
+                _panelRect = new Rect(x, PanelTop, PanelWidth, 34f);
+                _panelVisible = true;
+                IsTyping = false;
+                if (GUI.Button(_panelRect, "뷰어 모드 · 편집 모드로 (V)", _button)) _pendingViewerToggle = true;
+                return;
+            }
+
             if (!_open)
             {
                 _panelRect = new Rect(x, PanelTop, PanelWidth, 34f);
                 _panelVisible = true;
                 IsTyping = false;
-                if (GUI.Button(_panelRect, "가구 메뉴 열기 (Tab)", _button)) _open = true;
+                const float viewerWidth = 110f;
+                if (GUI.Button(new Rect(x, PanelTop, PanelWidth - viewerWidth - 6f, 34f), "가구 메뉴 열기 (Tab)", _button)) _open = true;
+                if (GUI.Button(new Rect(x + PanelWidth - viewerWidth, PanelTop, viewerWidth, 34f), "뷰어 (V)", _button))
+                    _pendingViewerToggle = true;
                 return;
             }
 
@@ -143,6 +166,7 @@ namespace Bangkku.UI
             GUILayout.BeginHorizontal();
             GUILayout.Label("가구 메뉴", _header);
             GUILayout.FlexibleSpace();
+            if (GUILayout.Button("뷰어 (V)", _button, GUILayout.Width(86f))) _pendingViewerToggle = true;
             if (GUILayout.Button("닫기 (Tab)", _button, GUILayout.Width(96f))) _open = false;
             GUILayout.EndHorizontal();
 

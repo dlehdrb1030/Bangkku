@@ -88,6 +88,8 @@ namespace Bangkku.Placement
         /// <summary>가구를 선택한다. null 이면 선택을 푼다.</summary>
         public void Select(FurnitureItem item)
         {
+            // 뷰어 모드에서는 가구를 고를 수 없다 (선택이 없으면 이동·회전도 되지 않는다)
+            if (item != null && ViewerMode.Active) return;
             bool same = item == _selected && _hasSelection == (item != null);
             if (same) return;
             _selected = item;

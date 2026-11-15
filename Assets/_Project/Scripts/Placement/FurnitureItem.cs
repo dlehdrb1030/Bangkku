@@ -119,6 +119,8 @@ namespace Bangkku.Placement
         {
             if (!AllItems.Contains(this)) AllItems.Add(this);
             PlacementValidator.EnsureInstance();
+            // 뷰어 모드 중에 생긴 가구(배치 불러오기 등)도 잡히지 않게
+            if (ViewerMode.Active) ViewerMode.ApplyTo(this);
         }
 
         void OnDisable() => AllItems.Remove(this);

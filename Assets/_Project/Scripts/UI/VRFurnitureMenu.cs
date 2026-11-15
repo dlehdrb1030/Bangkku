@@ -22,6 +22,7 @@ namespace Bangkku.UI
     /// - 선택: 이전·다음으로 배치된 가구를 돌아가며 선택, 삭제. 선택한 가구 정보는 StatusPanel.CompactText (치수·신뢰도·가장 가까운 대상)
     /// - 배치 저장·불러오기: LayoutSaver (데스크톱 메뉴와 같은 파일)
     /// - 접기: 제목 줄만 남긴다
+    /// - 뷰어 모드 버튼: ViewerMode 를 켠다. 뷰어 모드에서는 제목 줄("뷰어 모드" + "편집 모드" 버튼)만 남긴다
     /// 패널은 손목 위 Offset 자리에 두고 항상 머리 쪽을 보게 돌린다.
     /// EventSystem 이 없으면 XRUIInputModule 과 함께 만든다 (XR 레이로 UI 를 누르는 데 필요).
     /// 씬에 빈 오브젝트로 두고 Prefab 칸에 FurnitureItem_Base 를 넣는다 (비워 두면 씬의 TestFurnitureSpawner 프리팹).
@@ -86,7 +87,7 @@ namespace Bangkku.UI
         Canvas _canvas;
         RectTransform _root;
         GameObject _body;
-        Text _toggleText, _nameText, _wText, _dText, _hText, _selectedText, _infoText;
+        Text _titleText, _viewerText, _toggleText, _nameText, _wText, _dText, _hText, _selectedText, _infoText;
         readonly Image[] _confidenceImages = new Image[3];
         Font _font;
         FloorPlanBuilder _floorPlan;
@@ -99,6 +100,8 @@ namespace Bangkku.UI
         Text _pageText;
         GameObject _catalogBody, _boxBody;
         Image _catalogTabImage, _boxTabImage;
+        GameObject _toggleButton;
+        Image _viewerImage;
 
         void Start()
         {
@@ -110,7 +113,13 @@ namespace Bangkku.UI
             SetTab(_catalogItems.Count > 0);
             RefreshValues();
             RefreshCatalog();
+            // 데스크톱 V 키 등 다른 곳에서 모드를 바꿔도 따라간다
+            ViewerMode.Changed += OnViewerModeChanged;
         }
+
+        void OnDestroy() => ViewerMode.Changed -= OnViewerModeChanged;
+
+        void OnViewerModeChanged(bool active) => ApplyOpen();
 
         void LateUpdate()
         {
@@ -296,10 +305,17 @@ namespace Bangkku.UI
             ApplyOpen();
         }
 
+        /// <summary>펼침·접힘과 뷰어 모드에 맞춰 보이는 칸을 바꾼다. 뷰어 모드면 제목 줄만</summary>
         void ApplyOpen()
         {
-            _body.SetActive(_open);
+            bool viewer = ViewerMode.Active;
+            _body.SetActive(_open && !viewer);
+            _toggleButton.SetActive(!viewer);
             _toggleText.text = _open ? "접기" : "펼치기";
+            _titleText.text = viewer ? "뷰어 모드" : "가구 메뉴";
+            _viewerText.text = viewer ? "편집 모드" : "뷰어 모드";
+            _viewerImage.color = viewer ? ActiveColor : ButtonColor;
+            if (viewer) _infoText.text = "";
         }
 
         /// <summary>선택한 가구 정보 (상태 패널의 짧은 판: 이름·상태 / 치수·신뢰도 / 가장 가까운 대상)</summary>
@@ -367,8 +383,13 @@ namespace Bangkku.UI
             fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
             var header = Row(_root, 52f);
-            Label(header, "가구 메뉴", FontSize + 4, FontStyle.Bold, 1f);
-            _toggleText = MakeButton(header, "접기", ToggleOpen, ButtonColor, 140f).GetComponentInChildren<Text>();
+            _titleText = Label(header, "가구 메뉴", FontSize + 4, FontStyle.Bold, 1f);
+            var viewerButton = MakeButton(header, "뷰어 모드", ViewerMode.Toggle, ButtonColor, 150f);
+            _viewerText = viewerButton.GetComponentInChildren<Text>();
+            _viewerImage = viewerButton.GetComponent<Image>();
+            var toggleButton = MakeButton(header, "접기", ToggleOpen, ButtonColor, 120f);
+            _toggleButton = toggleButton.gameObject;
+            _toggleText = toggleButton.GetComponentInChildren<Text>();
 
             _body = new GameObject("Body", typeof(RectTransform));
             _body.transform.SetParent(_root, false);
