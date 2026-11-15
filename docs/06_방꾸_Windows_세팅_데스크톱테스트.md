@@ -207,8 +207,11 @@ git clone -b dev https://github.com/dlehdrb1030/Bangkku.git C:\Projects\Bangkku
 
 ### 1-B.4 씬에 놓기
 
-1. Project 창 `Assets`에서 우클릭 > Create > Folder → 이름 **`StreamingAssets`**
-2. 1-B.1의 `.ply` 2개를 탐색기에서 이 폴더로 끌어 놓음
+1. Project 창에서 `Assets/StreamingAssets` 폴더를 찾음
+   - **`dev`에는 이 폴더가 이미 있습니다** (팀원이 커밋한 `Splats/desk_01_v1.ply`). 새로 만들지 않고 이 폴더를 그대로 씁니다
+   - 새로 만들면 Unity가 `StreamingAssets 1`이라는 다른 폴더를 만들고, 그 안의 파일은 빌드에 들어가지 않습니다
+   - 폴더가 없을 때만 `Assets`에서 우클릭 > Create > Folder → 이름 **`StreamingAssets`**
+2. 1-B.1의 `.ply` 2개를 탐색기에서 `Assets/StreamingAssets/` 바로 아래로 끌어 놓음 (`Splats/` 안이 아님)
 3. `Main_VR` 씬을 열고 (저장하지 않을 것)
 4. Hierarchy 빈 곳 우클릭 > **Create Empty** → 이름 `Splat_Chair`
 5. Inspector > **Add Component** > `Gaussian Splat Renderer`
@@ -255,12 +258,18 @@ git clone -b dev https://github.com/dlehdrb1030/Bangkku.git C:\Projects\Bangkku
   2. 명령 프롬프트에서
      ```bash
      cd C:\Projects\Bangkku
-     git restore Packages/manifest.json Packages/packages-lock.json Assets/Settings/PC_Renderer.asset Assets/Settings/PC_RPAsset.asset
-     rmdir /s /q Assets\StreamingAssets
-     del Assets\StreamingAssets.meta
+     git restore Packages/manifest.json Packages/packages-lock.json Assets/Settings/PC_Renderer.asset Assets/Settings/PC_RPAsset.asset Assets/Settings/UniversalRenderPipelineGlobalSettings.asset
+     git restore Assets/_Project/Scenes/Main_VR.unity
+     git clean -n -d -- "Assets/StreamingAssets*"
+     ```
+     - `git clean -n`은 **지울 목록만 보여 줍니다.** 테스트로 넣은 `.ply` 2개와 `.meta`(또는 `StreamingAssets 1` 폴더)만 나오는지 확인합니다. 팀원의 `Splats/desk_01_v1.ply`는 Git에 있으므로 목록에 나오지 않습니다
+     - 목록이 맞으면 같은 명령을 `-n` 대신 `-f`로 실행:
+     ```bash
+     git clean -f -d -- "Assets/StreamingAssets*"
      git status
      ```
-  3. `git status`에 남은 변경이 없으면 끝 (`ProjectSettings/`가 남아 있으면 07 문서 3장 참고)
+     - ⚠️ `rmdir /s /q Assets\StreamingAssets`는 쓰지 않습니다. `dev`에 커밋된 팀원 파일까지 지워집니다. 이미 지웠다면 `git restore Assets/StreamingAssets Assets/StreamingAssets.meta`로 되살립니다
+  3. `git status`에 남은 변경이 없으면 끝 (`ProjectSettings/`가 남아 있으면 07 문서 3장 참고. 추적되지 않은 `.vsconfig`는 Unity가 Windows에서 만드는 Visual Studio 설정이라 그대로 둬도 됨)
 
 ---
 
