@@ -116,6 +116,7 @@
 | 사용할 URP Asset | 템플릿 기본 PC용 URP Asset 사용 (Android에서는 Mobile용 Asset) |
 | URP Renderer | **`GaussianSplatURPFeature` 추가** (팀원) |
 | Render Graph Compatibility Mode | **꺼진 상태 유지** (3DGS 플러그인 요구사항) |
+| Anti Aliasing (MSAA) | **Disabled 유지** (11-16 결정). 4x는 3DGS 가구가 깨지고 자글자글함. 고정설비 깜빡임은 코드로 해결 (PR #63) |
 | 스플랫이 위아래 뒤집혀 보이면 | URP Asset의 **HDR 끄기**, Renderer의 **Intermediate Texture = Auto** |
 | VSync / 목표 프레임 | VR 런타임이 관리, 코드에서 `Application.targetFrameRate`를 강제하지 않음 |
 
