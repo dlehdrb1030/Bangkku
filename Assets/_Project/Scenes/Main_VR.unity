@@ -265,6 +265,7 @@ MonoBehaviour:
   WidthMeters: 0.28
   StartOpen: 1
   SpawnDistanceMeters: 1.5
+  InfoSeconds: 5
 --- !u!4 &238431869
 Transform:
   m_ObjectHideFlags: 0
@@ -356,6 +357,7 @@ MonoBehaviour:
     Json: {fileID: 4900000, guid: a2c3e925529994084b10e32f49c6ceec, type: 3}
   AutoSave: 1
   AutoLoad: 1
+  SpawnDefaults: 1
   BoxPrefab: {fileID: 4390607552050888967, guid: d6b16af6699514bff82b280ce5313aa0, type: 3}
 --- !u!1 &471296097
 GameObject:
