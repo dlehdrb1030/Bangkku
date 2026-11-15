@@ -13,6 +13,8 @@ namespace Bangkku.FloorPlan
     /// 2. 가구를 지우고 FloorPlanBuilder 의 JSON 을 바꿔 방을 다시 만든다
     /// 3. 새 평면도로 저장한 배치가 있으면 자동으로 불러오고, 없으면 그 평면도의 기본 가구(TestFurnitureSpawner). 기본 가구가 없으면 빈 방
     /// 4. VR 시작 위치(XRRigSetup)·데스크톱 카메라(DesktopController)는 FloorPlanBuilder.Built 를 받아 새 평면도에 맞춘다
+    /// Play 시작도 3과 같은 규칙이다 (TestFurnitureSpawner.Start 가 LoadSavedLayout 을 먼저 부른다).
+    /// 그래서 보이는 배치가 늘 그 평면도의 저장 파일과 같아, 1의 자동 저장이 저장해 둔 배치를 기본 가구로 덮어쓰지 않는다.
     /// FloorPlanBuilder 와 같은 오브젝트에 붙이고 Plans 에 평면도 JSON 을 넣는다. 지금 씬 JSON 이 목록에 없어도 된다.
     /// </summary>
     [DisallowMultipleComponent]
@@ -35,7 +37,7 @@ namespace Bangkku.FloorPlan
         [Tooltip("평면도를 바꾸기 전에 지금 배치를 자동 저장한다 (그 평면도의 저장 파일을 덮어씀)")]
         public bool AutoSave = true;
 
-        [Tooltip("새 평면도로 저장한 배치가 있으면 자동으로 불러온다")]
+        [Tooltip("Play 시작·평면도를 바꿀 때 그 평면도로 저장한 배치가 있으면 기본 가구 대신 불러온다")]
         public bool AutoLoad = true;
 
         [Tooltip("저장한 배치가 없으면 그 평면도의 기본 가구를 놓는다 (씬의 TestFurnitureSpawner). 끄면 빈 방")]
@@ -153,9 +155,8 @@ namespace Bangkku.FloorPlan
 
             // 3. 새 평면도의 저장 배치 불러오기. 없으면 기본 가구, 그것도 없으면 빈 방
             string loaded = "빈 방";
-            if (AutoLoad && LayoutSaver.HasSave(out _))
+            if (LoadSavedLayout(out string loadMessage))
             {
-                LayoutSaver.Load(BoxFurniture.ResolvePrefab(BoxPrefab), transform, out string loadMessage);
                 loaded = loadMessage;
             }
             else if (SpawnDefaults)
@@ -168,6 +169,18 @@ namespace Bangkku.FloorPlan
             message = saved != null ? $"{label}(으)로 이동. {saved}, {loaded}" : $"{label}(으)로 이동. {loaded}";
             Debug.Log($"[방꾸] 평면도 바꾸기: {message}", this);
             Switched?.Invoke(this);
+            return true;
+        }
+
+        /// <summary>
+        /// 지금 평면도로 저장한 배치가 있으면 불러온다 (AutoLoad 가 켜져 있을 때). 저장 파일이 있었으면 true:
+        /// 불러온 가구 수와 상관없다 (빈 방을 저장했으면 빈 방). false 면 부른 쪽이 기본 가구를 놓는다
+        /// </summary>
+        public bool LoadSavedLayout(out string message)
+        {
+            message = null;
+            if (!AutoLoad || !LayoutSaver.HasSave(out _)) return false;
+            LayoutSaver.Load(BoxFurniture.ResolvePrefab(BoxPrefab), transform, out message);
             return true;
         }
     }

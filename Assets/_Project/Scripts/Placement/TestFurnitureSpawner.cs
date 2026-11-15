@@ -12,6 +12,8 @@ namespace Bangkku.Placement
     /// - oneroom_02: 침대(오른쪽 아래 구석, 머리판은 발코니 쪽 벽), 검은 책상(맞은편 화장실 벽에 붙임)
     /// - tworoom_01: 침대(침실2 왼쪽 위 구석, 머리판은 창 쪽 위 벽), 소파(거실 오른쪽 벽에 붙임)
     /// - 정해 둔 자리가 없는 평면도는 빈 방
+    /// 씬에 평면도 바꾸기(FloorPlanSwitcher)가 있으면 Play 시작도 평면도를 바꿀 때와 같은 규칙: 그 평면도로 저장한 배치가 있으면
+    /// 기본 가구 대신 불러온다 (기본 가구 상태로 평면도를 바꿔 저장 파일이 덮어써지는 것을 막음). 테스트 씬(바꾸기 없음)은 늘 기본 가구.
     /// Prefab 칸(FurnitureItem_Base)은 가구 메뉴·배치 불러오기가 박스 가구를 만들 때 쓴다 (BoxFurniture.ResolvePrefab).
     /// </summary>
     public class TestFurnitureSpawner : MonoBehaviour
@@ -26,7 +28,7 @@ namespace Bangkku.Placement
         [Tooltip("Assets/_Project/Prefabs/FurnitureItem_Base.prefab (박스 가구용. 가구 메뉴·배치 불러오기가 이 칸을 대신 쓴다)")]
         public FurnitureItem Prefab;
 
-        [Tooltip("켜면 Play 시작할 때 씬 평면도의 기본 가구를 놓는다")]
+        [Tooltip("켜면 Play 시작할 때 씬 평면도의 기본 가구를 놓는다 (평면도 바꾸기가 있고 저장한 배치가 있으면 그 배치)")]
         public bool SpawnOnStart = true;
 
         /// <summary>만든 가구</summary>
@@ -61,7 +63,12 @@ namespace Bangkku.Placement
 
         void Start()
         {
-            if (SpawnOnStart) Spawn();
+            if (!SpawnOnStart) return;
+
+            // FurnitureFactory 는 OnEnable 에서 CatalogSpawner 를 등록하고 FloorPlanBuilder 는 Awake 에서 방을 만들므로 Start 에서는 둘 다 준비됨
+            var switcher = FloorPlanSwitcher.Instance;
+            if (switcher != null && switcher.LoadSavedLayout(out _)) return;
+            Spawn();
         }
 
         /// <summary>이전에 만든 가구를 지우고 씬 평면도의 기본 가구를 다시 만든다. 만든 개수</summary>
