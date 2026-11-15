@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using Bangkku.Core;
 using Bangkku.FloorPlan;
+using Bangkku.Furniture;
 using Bangkku.IO;
 using Bangkku.Placement;
 using UnityEngine;
@@ -13,6 +15,8 @@ namespace Bangkku.UI
     /// 화면이 작으면 패널 안을 휠로 스크롤한다 (위: 배치 저장·불러오기, 새 박스 가구, 아래: 배치된 가구 목록).
     /// - 배치 저장·불러오기: LayoutSaver (persistentDataPath/layouts/&lt;평면도 이름&gt;.json). 불러오면 지금 가구를 지우고 저장한 대로 다시 만든다
     /// - 배치된 가구 목록: 누르면 선택, 선택한 가구 삭제
+    /// - 카탈로그 가구: 씬의 FurnitureFactory(팀원) 카탈로그 목록. 누르면 새 박스 가구와 같은 자리에 만들고 선택 (CatalogMenu).
+    ///   씬에 FurnitureFactory 가 없으면 이 칸을 숨긴다
     /// - 새 박스 가구: 이름, W·D·H (mm), 치수 신뢰도(실측·도면·추정)를 넣고 추가 → 화면 가운데 바닥(바닥이 아니면 가장 넓은 방 가운데)에 만들고 선택
     ///   id 는 box_01, box_02 … 로 자동. source = box 라서 팀원의 catalog.json 없이 동작한다
     /// - Tab: 열기·닫기. 입력칸에 글자를 넣는 동안에는 DesktopController 의 Q/E·WASD 가 가구·시점을 움직이지 않는다
@@ -66,6 +70,10 @@ namespace Bangkku.UI
         string _layoutMessage;
         bool _layoutMessageIsError, _hasSave;
         float _nextSaveCheck;
+        List<CatalogItem> _catalogItems;
+        CatalogItem _pendingCatalog;
+        string _catalogMessage;
+        bool _catalogMessageIsError;
         FloorPlanBuilder _floorPlan;
         GUIStyle _label, _header, _button, _field, _toggle, _box, _error;
 
@@ -81,6 +89,13 @@ namespace Bangkku.UI
 
         void Update()
         {
+            if (_pendingCatalog != null)
+            {
+                var item = _pendingCatalog;
+                _pendingCatalog = null;
+                AddCatalog(item);
+            }
+
             var keyboard = Keyboard.current;
             if (keyboard == null || Hidden || IsTyping) return;
             if (keyboard.tabKey.wasPressedThisFrame) _open = !_open;
@@ -135,6 +150,7 @@ namespace Bangkku.UI
             _panelScroll = GUILayout.BeginScrollView(_panelScroll);
             DrawLayout();
             GUILayout.Space(12f);
+            if (DrawCatalog()) GUILayout.Space(12f);
             DrawNewBox();
             GUILayout.Space(12f);
             DrawPlacedList();
@@ -222,6 +238,37 @@ namespace Bangkku.UI
             if (item == null) return;
             ShowMessage($"{DisplayName(item)} ({item.ItemId}) 를 지웠습니다.", false);
             BoxFurniture.Delete(item);
+        }
+
+        // ───────────── 카탈로그 가구 ─────────────
+
+        /// <summary>카탈로그 가구 버튼 목록. 씬에 FurnitureFactory 가 없거나 목록이 비면 그리지 않고 false</summary>
+        bool DrawCatalog()
+        {
+            // 팩토리를 찾을 때까지만 다시 읽는다 (CatalogMenu.Factory 가 1초에 한 번만 찾는다)
+            if (_catalogItems == null || _catalogItems.Count == 0) _catalogItems = CatalogMenu.Items();
+            if (_catalogItems.Count == 0) return false;
+
+            GUILayout.Label($"카탈로그 가구 ({_catalogItems.Count})", _header);
+            CatalogItem clicked = null;
+            foreach (var item in _catalogItems)
+            {
+                string text = $"{item.Name}  {CatalogMenu.SizeText(item)}  {ConfidenceLabel.Name(item.SizeConfidence)}";
+                if (GUILayout.Button(text, _toggle)) clicked = item;
+            }
+
+            if (!string.IsNullOrEmpty(_catalogMessage)) GUILayout.Label(_catalogMessage, _catalogMessageIsError ? _error : _label);
+
+            // OnGUI 도중에 가구를 만들면 아래 "배치된 가구" 목록 개수가 Layout 때와 달라지므로 다음 Update 에서 만든다
+            if (clicked != null) _pendingCatalog = clicked;
+            return true;
+        }
+
+        /// <summary>카탈로그 가구를 새 박스 가구와 같은 자리(화면 가운데 바닥)에 만들고 선택한다</summary>
+        void AddCatalog(CatalogItem item)
+        {
+            var furniture = CatalogMenu.Spawn(item, SpawnPosition(), transform, out _catalogMessage);
+            _catalogMessageIsError = furniture == null;
         }
 
         // ───────────── 새 박스 가구 ─────────────
