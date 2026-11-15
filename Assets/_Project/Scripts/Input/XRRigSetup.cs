@@ -7,6 +7,8 @@ using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.Interactors.Casters;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion.Turning;
+using UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets;
 
 namespace Bangkku.Input
 {
@@ -19,6 +21,8 @@ namespace Bangkku.Input
     /// 3. 처음 한 번 XR Origin 을 현관문 안쪽에 놓고 방 안쪽을 보게 한다 (평면도에서 자동으로 찾음).
     /// 4. VR 기기 없이(XR Device Simulator) 실행하면 눈높이를 서 있는 성인 높이(기본 1.6m)로 맞춘다.
     /// 5. 바닥 밖으로 떨어지면(바닥보다 2m 아래) 시작 위치로 되돌린다.
+    /// 6. 오른쪽 스틱 회전을 부드러운 회전으로 바꾼다 (Starter Assets 기본은 45°씩 끊어 도는 스냅 회전).
+    ///    가구를 잡고 있는 동안에는 VRFurnitureGrab 이 회전 Provider 를 꺼서 스틱이 가구 회전에만 쓰인다.
     /// 씬 오브젝트 하나에 붙이고 Floor Plan 과 Origin 을 지정한다. 비워 두면 씬에서 찾는다.
     /// </summary>
     public class XRRigSetup : MonoBehaviour
@@ -56,6 +60,13 @@ namespace Bangkku.Input
                  "Starter Assets 기본값은 1.36 이라 앉은 눈높이처럼 가구가 크게 보인다")]
         public float SimulatorEyeHeightMeters = 1.6f;
 
+        [Header("회전")]
+        [Tooltip("켜면 오른쪽 스틱 좌우로 부드럽게 돈다. 끄면 Starter Assets 기본 스냅 회전(45°씩)")]
+        public bool SmoothTurn = true;
+
+        [Tooltip("부드러운 회전 속도 (도/초). Starter Assets 기본값은 60. 60~120 사이에서 Windows VR 로 맞춘다 (빠를수록 멀미가 날 수 있음)")]
+        public float SmoothTurnDegreesPerSecond = 90f;
+
         [Header("떨어짐 복구")]
         [Tooltip("XR Origin 이 바닥보다 이만큼(m) 아래로 떨어지면 시작 위치로 되돌린다 (바닥 밖으로 나가 중력으로 떨어졌을 때). 0 이면 끔")]
         public float ResetBelowMeters = 2f;
@@ -75,7 +86,11 @@ namespace Bangkku.Input
 
         void Start()
         {
-            if (ApplySimulatorEyeHeight && ResolveOrigin()) SetSimulatorEyeHeight();
+            if (ResolveOrigin())
+            {
+                if (ApplySimulatorEyeHeight) SetSimulatorEyeHeight();
+                ApplyTurnMode();
+            }
 
             if (FloorPlan == null)
             {
@@ -145,6 +160,29 @@ namespace Bangkku.Input
             position.y = SimulatorEyeHeightMeters;
             offset.localPosition = position;
             Debug.Log($"[방꾸] VR 기기가 없어 시뮬레이터 눈높이를 {SimulatorEyeHeightMeters:0.00}m 로 맞췄습니다.", this);
+        }
+
+        /// <summary>
+        /// 스틱 회전 방식을 정한다. Starter Assets 의 손마다 있는 ControllerInputActionManager 가 Turn(부드러운)·Snap Turn 입력 중 하나만 켠다.
+        /// 왼손은 이동(Smooth Motion)을 쓰므로 매니저가 왼손 회전 입력을 끄고, 실제로는 오른손만 바뀐다.
+        /// 회전 Provider(ContinuousTurnProvider·SnapTurnProvider)는 프리팹에서 둘 다 켜져 있고 입력만 바뀐다.
+        /// </summary>
+        void ApplyTurnMode()
+        {
+            int managers = 0;
+            foreach (var manager in Origin.GetComponentsInChildren<ControllerInputActionManager>(true))
+            {
+                manager.smoothTurnEnabled = SmoothTurn;
+                managers++;
+            }
+
+            foreach (var provider in Origin.GetComponentsInChildren<ContinuousTurnProvider>(true))
+                provider.turnSpeed = SmoothTurnDegreesPerSecond;
+
+            if (managers == 0)
+                Debug.LogWarning("[방꾸] XRRigSetup: ControllerInputActionManager 가 없어 회전 방식을 바꾸지 못했습니다.", this);
+            else if (SmoothTurn)
+                Debug.Log($"[방꾸] 부드러운 회전 {SmoothTurnDegreesPerSecond:0}°/초", this);
         }
 
         void AddRayLayers()
