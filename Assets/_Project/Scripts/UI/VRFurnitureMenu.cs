@@ -21,6 +21,7 @@ namespace Bangkku.UI
     /// - 추가: 바라보는 방향 앞 바닥(바닥 밖이면 가장 넓은 방 가운데)에 박스 가구를 만들고 선택 (데스크톱 메뉴와 같은 BoxFurniture.AddNew)
     /// - 선택: 이전·다음으로 배치된 가구를 돌아가며 선택, 삭제. 선택한 가구 정보는 StatusPanel.CompactText (치수·신뢰도·가장 가까운 대상)
     /// - 배치 저장·불러오기: LayoutSaver (데스크톱 메뉴와 같은 파일)
+    /// - 평면도: 씬에 FloorPlanSwitcher 가 있고 평면도가 2개 이상이면 버튼 줄. 누르면 지금 배치를 자동 저장하고 그 평면도로 바꾼다
     /// - 접기: 제목 줄만 남긴다
     /// - 뷰어 모드 버튼: ViewerMode 를 켠다. 뷰어 모드에서는 제목 줄("뷰어 모드" + "편집 모드" 버튼)만 남긴다
     /// 패널은 손목 위 Offset 자리에 두고 항상 머리 쪽을 보게 돌린다.
@@ -102,6 +103,8 @@ namespace Bangkku.UI
         Image _catalogTabImage, _boxTabImage;
         GameObject _toggleButton;
         Image _viewerImage;
+        FloorPlanSwitcher _switcher;
+        readonly List<Image> _planImages = new();
 
         void Start()
         {
@@ -113,11 +116,36 @@ namespace Bangkku.UI
             SetTab(_catalogItems.Count > 0);
             RefreshValues();
             RefreshCatalog();
+            RefreshFloorPlans();
             // 데스크톱 V 키 등 다른 곳에서 모드를 바꿔도 따라간다
             ViewerMode.Changed += OnViewerModeChanged;
+            if (_switcher != null) _switcher.Switched += OnFloorPlanSwitched;
         }
 
-        void OnDestroy() => ViewerMode.Changed -= OnViewerModeChanged;
+        void OnDestroy()
+        {
+            ViewerMode.Changed -= OnViewerModeChanged;
+            if (_switcher != null) _switcher.Switched -= OnFloorPlanSwitched;
+        }
+
+        void OnFloorPlanSwitched(FloorPlanSwitcher switcher) => RefreshFloorPlans();
+
+        /// <summary>평면도 버튼: 지금 평면도를 파란색으로</summary>
+        void RefreshFloorPlans()
+        {
+            if (_switcher == null) return;
+            int current = _switcher.CurrentIndex;
+            for (int i = 0; i < _planImages.Count; i++)
+                if (_planImages[i] != null) _planImages[i].color = i == current ? ActiveColor : ButtonColor;
+        }
+
+        void SwitchFloorPlan(int index)
+        {
+            if (_switcher == null) return;
+            _switcher.SwitchTo(index, out string message);
+            _infoText.text = message;
+            RefreshFloorPlans();
+        }
 
         void OnViewerModeChanged(bool active) => ApplyOpen();
 
@@ -444,6 +472,8 @@ namespace Bangkku.UI
             MakeButton(layoutRow, "배치 저장", SaveLayout, ButtonColor);
             MakeButton(layoutRow, "배치 불러오기", LoadLayout, ButtonColor);
 
+            BuildFloorPlans(body);
+
             _infoText = Label(body, "", FontSize - 4, FontStyle.Normal, 0f);
         }
 
@@ -475,6 +505,33 @@ namespace Bangkku.UI
             _pageText.alignment = TextAnchor.MiddleCenter;
             MakeButton(pageRow, "▶", () => TurnPage(1), ButtonColor, 120f);
             pageRow.gameObject.SetActive(PageCount(_catalogItems.Count, CatalogPageSize) > 1);
+        }
+
+        /// <summary>평면도 줄: 한 줄에 2개씩. FloorPlanSwitcher 가 없거나 평면도가 2개 미만이면 만들지 않는다</summary>
+        void BuildFloorPlans(RectTransform parent)
+        {
+            _switcher = FloorPlanSwitcher.Instance;
+            if (_switcher == null || !_switcher.HasChoices) return;
+
+            Label(parent, "평면도 (누르면 지금 배치 저장 후 이동)", FontSize - 4, FontStyle.Normal, 0f);
+            RectTransform row = null;
+            int inRow = 0;
+            for (int i = 0; i < _switcher.Plans.Count; i++)
+            {
+                var entry = _switcher.Plans[i];
+                if (entry == null || entry.Json == null) continue;
+                if (row == null || inRow == 2)
+                {
+                    row = Row(parent, 56f);
+                    inRow = 0;
+                }
+
+                int index = i;
+                var button = MakeButton(row, _switcher.LabelOf(i), () => SwitchFloorPlan(index), ButtonColor, -1f, FontSize - 2);
+                while (_planImages.Count < i) _planImages.Add(null);
+                _planImages.Add(button.GetComponent<Image>());
+                inRow++;
+            }
         }
 
         static GameObject Section(RectTransform parent, string name)

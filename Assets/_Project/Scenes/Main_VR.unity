@@ -290,6 +290,7 @@ GameObject:
   m_Component:
   - component: {fileID: 296290329}
   - component: {fileID: 296290328}
+  - component: {fileID: 296290330}
   m_Layer: 0
   m_Name: FloorPlan
   m_TagString: Untagged
@@ -336,6 +337,26 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &296290330
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 296290327}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d9606d06df5e4bd7a00682e91edb841, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Bangkku.FloorPlan.FloorPlanSwitcher
+  Plans:
+  - Label: "\uC6D0\uB8F8 26A\uD615"
+    Json: {fileID: 4900000, guid: dbb65b62fb23745f4a0eaea8ee0be28f, type: 3}
+  - Label: "\uD22C\uB8F8 36\uD615"
+    Json: {fileID: 4900000, guid: a2c3e925529994084b10e32f49c6ceec, type: 3}
+  AutoSave: 1
+  AutoLoad: 1
+  BoxPrefab: {fileID: 4390607552050888967, guid: d6b16af6699514bff82b280ce5313aa0, type: 3}
 --- !u!1 &471296097
 GameObject:
   m_ObjectHideFlags: 0

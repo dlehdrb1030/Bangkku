@@ -287,9 +287,9 @@ namespace Bangkku.IO
 
         /// <summary>
         /// 지금 가구를 모두 지운다. 바로 끄면 OnDisable 에서 FurnitureItem.All 에서 빠지므로
-        /// 같은 프레임에 만드는 새 가구와 겹침 판정이 섞이지 않는다
+        /// 같은 프레임에 만드는 새 가구와 겹침 판정이 섞이지 않는다. 평면도를 바꿀 때(FloorPlanSwitcher)도 쓴다
         /// </summary>
-        static void ClearFurniture()
+        public static void ClearFurniture()
         {
             if (FurnitureItem.All.Count == 0) return;
             SelectionManager.Instance.Deselect();
