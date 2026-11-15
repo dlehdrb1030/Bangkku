@@ -73,6 +73,9 @@ namespace Bangkku.Input
 
         bool _moved;
 
+        /// <summary>시작 위치로 옮긴 평면도 이름. 평면도가 바뀌면(FloorPlanSwitcher) 새 평면도의 시작 위치로 다시 옮긴다</summary>
+        string _startedPlan;
+
         void OnEnable()
         {
             if (FloorPlan == null) FloorPlan = FindFirstObjectByType<FloorPlanBuilder>();
@@ -119,7 +122,8 @@ namespace Bangkku.Input
             if (!ResolveOrigin()) return;
             AddRayLayers();
             AddTeleportAreas();
-            if (MoveToStart && !_moved) MoveOriginToStart();
+            // 같은 평면도를 다시 만들 때(Inspector 메뉴)는 그대로 두고, 다른 평면도로 바뀌면 새 현관으로 옮긴다
+            if (MoveToStart && (!_moved || _startedPlan != FloorPlan.Data?.Name)) MoveOriginToStart();
         }
 
         bool ResolveOrigin()
@@ -267,6 +271,7 @@ namespace Bangkku.Input
             if (controller != null) controller.enabled = true;
 
             _moved = true;
+            _startedPlan = FloorPlan.Data?.Name;
         }
     }
 }

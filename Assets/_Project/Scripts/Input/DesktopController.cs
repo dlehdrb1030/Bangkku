@@ -71,6 +71,10 @@ namespace Bangkku.Input
         Vector3 _grabOffset;
         GUIStyle _style;
         ConfidenceLabel _confidenceLabel;
+        FloorPlanBuilder _floorPlan;
+
+        /// <summary>시작 시점을 맞춘 평면도 이름. 평면도가 바뀌면(FloorPlanSwitcher) 새 평면도 전체가 보이게 다시 맞춘다</summary>
+        string _framedPlan;
 
         void Awake()
         {
@@ -103,6 +107,32 @@ namespace Bangkku.Input
 
             Camera.transform.position = start;
             Camera.transform.rotation = Quaternion.Euler(_pitch, _yaw, 0f);
+
+            _floorPlan = FindFirstObjectByType<FloorPlanBuilder>();
+            if (_floorPlan != null)
+            {
+                _framedPlan = _floorPlan.Data?.Name;
+                _floorPlan.Built += OnFloorPlanBuilt;
+            }
+        }
+
+        void OnDestroy()
+        {
+            if (_floorPlan != null) _floorPlan.Built -= OnFloorPlanBuilt;
+        }
+
+        /// <summary>다른 평면도로 바뀌면 새 평면도 전체가 보이는 위에서 다시 내려다본다 (같은 평면도를 다시 만들면 시점 그대로)</summary>
+        void OnFloorPlanBuilt(FloorPlanBuilder builder)
+        {
+            string plan = builder.Data?.Name;
+            if (!enabled || plan == _framedPlan) return;
+            _framedPlan = plan;
+            if (!FrameFloorPlan || Camera == null || !TryFramePosition(out var framed)) return;
+
+            _dragging = false;
+            _pitch = 90f;
+            _yaw = 0f;
+            Camera.transform.SetPositionAndRotation(framed, Quaternion.Euler(_pitch, _yaw, 0f));
         }
 
         /// <summary>씬의 평면도 전체가 보이는 바로 위 위치. 평면도가 없거나 아직 만들어지지 않았으면 false</summary>
