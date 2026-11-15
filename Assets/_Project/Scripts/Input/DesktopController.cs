@@ -1,5 +1,7 @@
 using Bangkku.Core;
+using Bangkku.FloorPlan;
 using Bangkku.Placement;
+using Bangkku.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.XR;
@@ -13,6 +15,9 @@ namespace Bangkku.Input
     /// - Q / E: 선택한 가구를 Y축으로 -90° / +90° 회전, Shift 를 누르면 15°
     /// - 우클릭을 누른 채: 마우스로 시점 회전, W A S D 로 이동 (Shift 로 빠르게)
     /// - 마우스 휠: 보는 방향으로 확대·축소
+    /// - L: 신뢰도 라벨 표시 방식 바꾸기 (모든 가구 → 선택한 가구만 → 끄기)
+    /// - 가구 메뉴(FurnitureMenu)·상태 패널(StatusPanel) 위에서는 클릭·휠이 가구·시점에 닿지 않고, 메뉴 입력칸에 글자를 넣는 동안에는 Q/E·WASD·L 을 무시한다
+    /// 선택한 가구 정보는 StatusPanel 이 화면 왼쪽 아래에 보여 준다.
     /// VR 이 켜져 있으면 스스로 꺼진다 (Disable When XR Active).
     /// 판정(겹침·간격)과 스냅은 다른 컴포넌트가 맡는다. 여기서는 위치와 회전만 바꾼다.
     /// </summary>
@@ -35,7 +40,14 @@ namespace Bangkku.Input
         public float ZoomStepMeters = 0.5f;
 
         [Header("시작 시점")]
-        [Tooltip("월드 좌표 (m). 기본값은 oneroom_01 위쪽")]
+        [Tooltip("켜면 씬의 평면도 전체가 화면에 들어오도록 바로 위에서 내려다보는 위치를 계산한다. 평면도를 바꿔도 따로 맞출 필요가 없다. " +
+                 "평면도가 없으면 아래 Start Position 을 쓴다")]
+        public bool FrameFloorPlan = true;
+
+        [Tooltip("평면도 둘레에 남길 여백 배율 (1 = 꽉 차게)")]
+        public float FrameMargin = 1.1f;
+
+        [Tooltip("Frame Floor Plan 을 끄거나 평면도가 없을 때 쓰는 월드 좌표 (m)")]
         public Vector3 StartPosition = new(1.8f, 9f, -3.4f);
 
         [Tooltip("x = 아래로 숙이는 각도 (90 = 바로 아래), y = 좌우 방향. 위에서 볼 때 화면 위쪽이 평면도 위쪽이 된다")]
@@ -57,6 +69,7 @@ namespace Bangkku.Input
         bool _dragging;
         Vector3 _grabOffset;
         GUIStyle _style;
+        ConfidenceLabel _confidenceLabel;
 
         void Awake()
         {
@@ -66,18 +79,42 @@ namespace Bangkku.Input
 
         void Start()
         {
-            if (DisableWhenXRActive && XRSettings.isDeviceActive)
+            if (DisableWhenXRActive && ModeSelector.HeadsetConnected())
             {
                 Debug.Log("[방꾸] VR 기기가 동작 중이라 데스크톱 모드를 끕니다.", this);
                 enabled = false;
                 return;
             }
 
+            // 씬이 열릴 때(AfterSceneLoad) 만들어진 신뢰도 라벨. 안내 글자에 지금 표시 방식을 보여 준다
+            _confidenceLabel = FindAnyObjectByType<ConfidenceLabel>();
+
             if (Camera == null) return;
             _pitch = StartPitchYaw.x;
             _yaw = StartPitchYaw.y;
-            Camera.transform.position = StartPosition;
+            var start = StartPosition;
+            if (FrameFloorPlan && TryFramePosition(out var framed))
+            {
+                start = framed;
+                _pitch = 90f;
+                _yaw = 0f;
+            }
+
+            Camera.transform.position = start;
             Camera.transform.rotation = Quaternion.Euler(_pitch, _yaw, 0f);
+        }
+
+        /// <summary>씬의 평면도 전체가 보이는 바로 위 위치. 평면도가 없거나 아직 만들어지지 않았으면 false</summary>
+        bool TryFramePosition(out Vector3 position)
+        {
+            position = default;
+            var builder = FindFirstObjectByType<FloorPlanBuilder>();
+            var plan = builder != null ? builder.Data : null;
+            if (plan == null || !FloorPlanSpots.TryGetBounds(plan, out var min, out var max)) return false;
+
+            position = TopViewPosition(min, max, Units.MmToM(plan.CeilingHeight.Value),
+                Camera.fieldOfView, Camera.aspect, FrameMargin);
+            return true;
         }
 
         void OnDisable()
@@ -93,22 +130,28 @@ namespace Bangkku.Input
             var keyboard = Keyboard.current;
             if (mouse == null || keyboard == null || Camera == null) return;
 
+            var pointer = mouse.position.ReadValue();
+            bool overMenu = FurnitureMenu.IsPointerOver(pointer) || StatusPanel.IsPointerOver(pointer);
+            bool typing = FurnitureMenu.IsTyping;
+            if (!typing) HandleLabelToggle(keyboard);
+
             bool looking = mouse.rightButton.isPressed;
             SetCursorLocked(looking);
             if (looking)
             {
                 _dragging = false;
                 Look(mouse.delta.ReadValue());
-                Move(keyboard);
+                if (!typing) Move(keyboard);
             }
             else
             {
                 bool snap = !IsFreeMode(keyboard);
-                HandleSelectionAndDrag(mouse, snap);
-                HandleRotation(keyboard, snap);
+                HandleSelectionAndDrag(mouse, snap, overMenu);
+                if (!typing) HandleRotation(keyboard, snap);
             }
 
-            Zoom(mouse.scroll.ReadValue().y);
+            // 메뉴 위에서 휠은 목록 스크롤이다
+            if (!overMenu) Zoom(mouse.scroll.ReadValue().y);
         }
 
         // ───────────── 시점 ─────────────
@@ -151,11 +194,12 @@ namespace Bangkku.Input
         /// <summary>Alt(맥은 Option)를 누르는 동안은 스냅 없이 자유롭게 움직인다</summary>
         static bool IsFreeMode(Keyboard keyboard) => keyboard.leftAltKey.isPressed || keyboard.rightAltKey.isPressed;
 
-        void HandleSelectionAndDrag(Mouse mouse, bool snap)
+        void HandleSelectionAndDrag(Mouse mouse, bool snap, bool overMenu)
         {
             var ray = Camera.ScreenPointToRay(mouse.position.ReadValue());
 
-            if (mouse.leftButton.wasPressedThisFrame)
+            // 메뉴를 누른 것은 가구 선택·해제가 아니다 (드래그 중에 메뉴 위를 지나가는 것은 그대로 둔다)
+            if (mouse.leftButton.wasPressedThisFrame && !overMenu)
             {
                 if (Physics.Raycast(ray, out var hit, 100f, Layers.FurnitureMask))
                 {
@@ -218,6 +262,22 @@ namespace Bangkku.Input
 
         static bool TryGetFloorPoint(Ray ray, out Vector3 point) => TryGetPlanePoint(ray, 0f, out point);
 
+        /// <summary>
+        /// 평면도 범위(mm)를 바로 위(아래를 보고 화면 위쪽 = 평면도 위쪽)에서 볼 때 전체가 들어오는 카메라 위치 (m).
+        /// 가장 가까운 벽 윗면(천장 높이) 기준으로 세로·가로 중 더 먼 거리를 고른다.
+        /// </summary>
+        /// <param name="verticalFovDegrees">Camera.fieldOfView (세로 시야각)</param>
+        /// <param name="aspect">가로 ÷ 세로</param>
+        public static Vector3 TopViewPosition(Vector2 minMm, Vector2 maxMm, float topHeightM, float verticalFovDegrees, float aspect, float margin)
+        {
+            var center = Units.PlanToWorld((minMm.x + maxMm.x) * 0.5f, (minMm.y + maxMm.y) * 0.5f);
+            float halfWidth = Units.MmToM(maxMm.x - minMm.x) * 0.5f;   // 화면 가로 = 평면도 X
+            float halfDepth = Units.MmToM(maxMm.y - minMm.y) * 0.5f;   // 화면 세로 = 평면도 Y
+            float tanHalf = Mathf.Tan(verticalFovDegrees * 0.5f * Mathf.Deg2Rad);
+            float distance = Mathf.Max(halfDepth / tanHalf, halfWidth / (tanHalf * Mathf.Max(aspect, 0.01f))) * Mathf.Max(margin, 1f);
+            return new Vector3(center.x, topHeightM + distance, center.z);
+        }
+
         /// <summary>바닥 교점 + 잡은 지점의 오프셋. 가구는 바닥에 붙어 있으므로 y = 0</summary>
         public static Vector3 DragPosition(Vector3 floorPoint, Vector3 grabOffset)
         {
@@ -228,20 +288,23 @@ namespace Bangkku.Input
 
         // ───────────── 화면 안내 ─────────────
 
+        /// <summary>L 키: 신뢰도 라벨 표시 방식 (모든 가구 → 선택한 가구만 → 끄기)</summary>
+        void HandleLabelToggle(Keyboard keyboard)
+        {
+            if (!keyboard.lKey.wasPressedThisFrame) return;
+            if (_confidenceLabel == null) _confidenceLabel = FindAnyObjectByType<ConfidenceLabel>();
+            if (_confidenceLabel != null) _confidenceLabel.CycleMode();
+        }
+
+        // 선택한 가구 정보(위치·상태·간격·좁음 근거)는 StatusPanel 이 왼쪽 아래에 보여 준다. 여기서는 조작 안내만
         void OnGUI()
         {
             _style ??= new GUIStyle(GUI.skin.label) { fontSize = 16, normal = { textColor = Color.white } };
 
-            string selected = "선택: 없음";
-            if (Selected != null)
-            {
-                var plan = Units.WorldToPlan(Selected.transform.position);
-                selected = $"선택: {Selected.ItemId}   위치 ({plan.x}, {plan.y}) mm   회전 {Selected.transform.eulerAngles.y:0}°";
-            }
-
-            GUI.Label(new Rect(12, 8, 900, 26), selected, _style);
-            GUI.Label(new Rect(12, 32, 900, 26),
-                "좌클릭: 선택·드래그 (Alt: 스냅 끄기)   Q/E: 90° 회전 (Shift: 15°)   우클릭+마우스: 시점   우클릭+WASD: 이동   휠: 확대", _style);
+            string label = _confidenceLabel != null ? $" ({ConfidenceLabel.ModeText(_confidenceLabel.Mode)})" : string.Empty;
+            GUI.Label(new Rect(12, 8, 1400, 26),
+                "좌클릭: 선택·드래그 (Alt: 스냅 끄기)   Q/E: 90° 회전 (Shift: 15°)   우클릭+마우스: 시점   우클릭+WASD: 이동   휠: 확대   " +
+                $"Tab: 가구 메뉴   L: 신뢰도 라벨{label}", _style);
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Bangkku.Core;
 using Bangkku.Furniture;
 using UnityEngine;
@@ -24,6 +25,14 @@ namespace Bangkku.Placement
     [RequireComponent(typeof(Rigidbody))]
     public class FurnitureItem : MonoBehaviour
     {
+        static readonly List<FurnitureItem> AllItems = new();
+
+        /// <summary>켜져 있는 가구 전부. PlacementValidator 가 판정할 때 쓴다</summary>
+        public static IReadOnlyList<FurnitureItem> All => AllItems;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics() => AllItems.Clear();
+
         /// <summary>catalog id</summary>
         public string ItemId;
 
@@ -71,7 +80,9 @@ namespace Bangkku.Placement
         /// </summary>
         internal void SetPlacementResult(PlacementState state, float minGapMeters)
         {
-            if (state == State && Mathf.Approximately(minGapMeters, MinGapMeters)) return;
+            // 둘 다 PositiveInfinity 면 Approximately 가 false 라서 == 를 먼저 본다 (그러지 않으면 매번 PlacementChanged 가 불린다)
+            bool sameGap = minGapMeters == MinGapMeters || Mathf.Approximately(minGapMeters, MinGapMeters);
+            if (state == State && sameGap) return;
 
             State = state;
             MinGapMeters = minGapMeters;
@@ -99,7 +110,18 @@ namespace Bangkku.Placement
                 Debug.LogError($"[방꾸] {name}: BoxCollider 가 연결되지 않았습니다. 판정이 동작하지 않습니다.", this);
             else
                 BoxCollider.gameObject.layer = Layers.Furniture;
+
+            // 상태 표시(윤곽선 색, 겹침 상자). 프리팹에 없으면 붙인다 (팀원 Variant 를 고치지 않아도 되도록)
+            if (!TryGetComponent<PlacementStateView>(out _)) gameObject.AddComponent<PlacementStateView>();
         }
+
+        void OnEnable()
+        {
+            if (!AllItems.Contains(this)) AllItems.Add(this);
+            PlacementValidator.EnsureInstance();
+        }
+
+        void OnDisable() => AllItems.Remove(this);
 
         /// <summary>SizeMeters 를 BoxCollider 와 LabelAnchor 에 반영한다.</summary>
         void ApplySize()

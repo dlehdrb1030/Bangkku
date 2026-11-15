@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Bangkku.Furniture;
 using Newtonsoft.Json;
 using UnityEngine.Scripting;
 
@@ -28,5 +29,11 @@ namespace Bangkku.IO
 
         /// <summary>Y축 회전 (도)</summary>
         [JsonProperty("rotationY")] public float RotationY;
+
+        /// <summary>
+        /// 박스 가구(source = box)만: 다시 만들 때 쓸 이름·치수·신뢰도·색. 카탈로그 가구는 비워 둔다 (JSON 에 칸이 생기지 않음).
+        /// 가구 메뉴로 추가한 새 박스 가구는 catalog.json 에 없어서 id 만으로는 다시 만들 수 없다.
+        /// </summary>
+        [JsonProperty("item", NullValueHandling = NullValueHandling.Ignore)] public CatalogItem Item;
     }
 }
