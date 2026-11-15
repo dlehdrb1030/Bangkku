@@ -105,7 +105,8 @@ namespace Bangkku.UI
         {
             // 판정은 Update 에서 끝나므로 LateUpdate 에서 이번 프레임 값을 그린다
             // 가구가 없는 씬(Test_FloorPlan 등)에서는 SelectionManager·PlacementValidator 를 만들지 않도록 먼저 본다
-            if (FurnitureItem.All.Count == 0)
+            // 뷰어 모드에서는 숨긴다 (선택도 풀려 있지만 확실히)
+            if (FurnitureItem.All.Count == 0 || ViewerMode.Active)
             {
                 SetVisible(false);
                 return;

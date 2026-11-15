@@ -62,10 +62,17 @@ namespace Bangkku.Placement
         void OnEnable()
         {
             _item.PlacementChanged += OnPlacementChanged;
+            ViewerMode.Changed += OnViewerModeChanged;
             Refresh();
         }
 
-        void OnDisable() => _item.PlacementChanged -= OnPlacementChanged;
+        void OnDisable()
+        {
+            _item.PlacementChanged -= OnPlacementChanged;
+            ViewerMode.Changed -= OnViewerModeChanged;
+        }
+
+        void OnViewerModeChanged(bool active) => Refresh();
 
         void LateUpdate()
         {
@@ -171,8 +178,10 @@ namespace Bangkku.Placement
         {
             if (_item == null || _fill == null) return;
             var state = _item.State;
+            // 뷰어 모드에서는 윤곽선·겹침 상자를 모두 숨긴다
+            bool viewer = ViewerMode.Active;
 
-            bool showLines = ShowFreeOutline || state != PlacementState.Free;
+            bool showLines = !viewer && (ShowFreeOutline || state != PlacementState.Free);
             var lineMaterial = LineMaterial(state);
             foreach (var line in _lines)
             {
@@ -181,7 +190,7 @@ namespace Bangkku.Placement
             }
 
             var fillMaterial = Pick(OverlapFillMaterial, ref _fallbackFill, "StateOverlapFill", OverlapFillColor, true);
-            _fill.enabled = state == PlacementState.Overlap && fillMaterial != null;
+            _fill.enabled = !viewer && state == PlacementState.Overlap && fillMaterial != null;
             _fill.sharedMaterial = fillMaterial;
         }
 

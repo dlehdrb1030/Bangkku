@@ -57,7 +57,8 @@ namespace Bangkku.UI
         {
             // 판정은 Update 에서 끝나므로 LateUpdate 에서 이번 프레임 값으로 글을 만든다 (OnGUI 는 한 프레임에 여러 번 불린다)
             // 가구가 없는 씬(Test_FloorPlan 등)에서는 SelectionManager·PlacementValidator 를 만들지 않도록 먼저 본다
-            if (Hidden || FurnitureItem.All.Count == 0)
+            // 뷰어 모드에서는 패널을 숨긴다
+            if (Hidden || ViewerMode.Active || FurnitureItem.All.Count == 0)
             {
                 _text = string.Empty;
                 return;
