@@ -26,8 +26,8 @@ Transform:
   m_GameObject: {fileID: 1558008800273972590}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: -0.000000030908623, z: 0.7071068, w: -0.000000030908623}
-  m_LocalPosition: {x: 0.174092, y: 0.004598, z: 0.118588}
-  m_LocalScale: {x: 1.2183805, y: 1.2183805, z: 1.2183805}
+  m_LocalPosition: {x: 0.170795681, y: -0.0302330985, z: 0.116699819}
+  m_LocalScale: {x: 1.19311119, y: 1.19311119, z: 1.19311119}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 449937821756099355}
@@ -99,6 +99,46 @@ PrefabInstance:
     - target: {fileID: 4108375303625597920, guid: d6b16af6699514bff82b280ce5313aa0, type: 3}
       propertyPath: m_Name
       value: desk_01
+      objectReference: {fileID: 0}
+    - target: {fileID: 4390607552050888967, guid: d6b16af6699514bff82b280ce5313aa0, type: 3}
+      propertyPath: ItemId
+      value: desk_01
+      objectReference: {fileID: 0}
+    - target: {fileID: 4390607552050888967, guid: d6b16af6699514bff82b280ce5313aa0, type: 3}
+      propertyPath: SizeConfidence
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4390607552050888967, guid: d6b16af6699514bff82b280ce5313aa0, type: 3}
+      propertyPath: SizeMeters.x
+      value: 1.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5587098189358866978, guid: d6b16af6699514bff82b280ce5313aa0, type: 3}
+      propertyPath: m_Size.x
+      value: 1.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4390607552050888967, guid: d6b16af6699514bff82b280ce5313aa0, type: 3}
+      propertyPath: SizeMeters.y
+      value: 0.73
+      objectReference: {fileID: 0}
+    - target: {fileID: 5587098189358866978, guid: d6b16af6699514bff82b280ce5313aa0, type: 3}
+      propertyPath: m_Size.y
+      value: 0.73
+      objectReference: {fileID: 0}
+    - target: {fileID: 4390607552050888967, guid: d6b16af6699514bff82b280ce5313aa0, type: 3}
+      propertyPath: SizeMeters.z
+      value: 0.67
+      objectReference: {fileID: 0}
+    - target: {fileID: 5587098189358866978, guid: d6b16af6699514bff82b280ce5313aa0, type: 3}
+      propertyPath: m_Size.z
+      value: 0.67
+      objectReference: {fileID: 0}
+    - target: {fileID: 5587098189358866978, guid: d6b16af6699514bff82b280ce5313aa0, type: 3}
+      propertyPath: m_Center.y
+      value: 0.365
+      objectReference: {fileID: 0}
+    - target: {fileID: 1342557882949435731, guid: d6b16af6699514bff82b280ce5313aa0, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.73
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
