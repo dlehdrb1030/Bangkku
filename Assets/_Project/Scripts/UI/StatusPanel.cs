@@ -154,7 +154,7 @@ namespace Bangkku.UI
         }
 
         /// <summary>"벽 w3_0 32mm (도면 ±30mm)". MaxGap 안에 아무것도 없으면 "1m 안에 없음"</summary>
-        static string NearestText(FurnitureItem item, PlacementValidator validator, bool withConfidence = true)
+        public static string NearestText(FurnitureItem item, PlacementValidator validator, bool withConfidence = true)
         {
             if (!validator.TryGetGap(item, out var gap) || !gap.HasTarget) return $"{validator.MaxGapMeters:0.#}m 안에 없음";
             string target = TargetText(DistanceLabel.TargetKind(gap.Target), DistanceLabel.TargetName(gap.Target));
