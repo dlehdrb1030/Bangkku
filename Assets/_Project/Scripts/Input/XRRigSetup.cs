@@ -129,7 +129,7 @@ namespace Bangkku.Input
         /// </summary>
         void SetSimulatorEyeHeight()
         {
-            if (XRSettings.isDeviceActive) return;
+            if (ModeSelector.HeadsetConnected()) return;
 
             var xrOrigin = Origin.GetComponent<XROrigin>();
             var offset = xrOrigin != null && xrOrigin.CameraFloorOffsetObject != null
