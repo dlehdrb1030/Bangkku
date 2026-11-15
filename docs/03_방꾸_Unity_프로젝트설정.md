@@ -106,7 +106,9 @@
 | macOS | XR 사용 안 함 (에디터에서는 XR Device Simulator 사용) |
 
 - 노란 경고·빨간 오류가 있으면 **XR Plug-in Management > Project Validation > Fix All**
-- Render Mode(OpenXR): 기본 **Single Pass Instanced**. 3DGS가 한쪽 눈에만 보이거나 어긋나면 **Multi Pass**로 바꿔 비교 (1주차 팀원 확인 항목)
+- Render Mode(OpenXR)
+  - **Windows: Multi-pass** (11-15 결정). Windows VR 테스트에서 Single Pass Instanced는 3DGS가 한쪽 눈에만 보였고, Multi-pass는 양쪽 눈 정상, 의자 1개(약 6.3만 가우시안) 72fps
+  - Android: 기본 **Single Pass Instanced** 그대로 (Quest 단독은 3DGS를 쓰지 않는 박스·메쉬 테스트용)
 
 ### 5.4 Quality / URP
 | 항목 | 값 |
