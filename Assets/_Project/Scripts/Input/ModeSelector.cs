@@ -3,13 +3,14 @@ using Bangkku.UI;
 using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.XR;
+using UnityEngine.XR.Management;
 using UnityEngine.XR.Interaction.Toolkit.Inputs.Simulation;
 
 namespace Bangkku.Input
 {
     /// <summary>
     /// Main_VR 씬에서 VR 과 데스크톱 중 하나만 켠다 (팀장 가이드 4주차 통합, 03 문서 7장 "XR 초기화가 안 되면 데스크톱 모드").
-    /// - 헤드셋이 동작 중(XRSettings.isDeviceActive) → VR: VR 묶음만 켠다 (XR Origin, 손목 메뉴 등). 시뮬레이터는 끈다
+    /// - 헤드셋이 연결됨(HeadsetConnected: XR 로더 초기화 성공 또는 XRSettings.isDeviceActive) → VR: VR 묶음만 켠다 (XR Origin, 손목 메뉴 등). 시뮬레이터는 끈다
     /// - 헤드셋이 없음 → Without Headset 값대로
     ///   데스크톱(기본): 데스크톱 묶음만 켠다 (데스크톱 카메라 + DesktopController, 가구 메뉴). 맥·VR 장비 없는 PC·빌드에서 이 모드
     ///   시뮬레이터: VR 묶음 + XR Device Simulator 를 켠다 (맥 에디터에서 VR 조작 시험)
@@ -59,6 +60,20 @@ namespace Bangkku.Input
 
         public static bool UsesVr(Mode mode) => mode != Mode.Desktop;
 
+        /// <summary>
+        /// 실제 헤드셋이 연결되어 있는지.
+        /// OpenXR 은 Play 첫 프레임(Awake)에는 세션이 아직 시작 전이라 XRSettings.isDeviceActive 가 false 일 수 있다 (Windows + Quest Link 에서 확인).
+        /// XR 로더는 씬 로드 전에 초기화되고, 헤드셋이 없으면 초기화에 실패해 activeLoader 가 null 이 되므로 이것으로 판단한다.
+        /// 맥(XR 로더 없음)과 XR Device Simulator 는 false.
+        /// </summary>
+        public static bool HeadsetConnected()
+        {
+            if (XRSettings.isDeviceActive) return true;
+            var settings = XRGeneralSettings.Instance;
+            var manager = settings != null ? settings.Manager : null;
+            return manager != null && manager.isInitializationComplete && manager.activeLoader != null;
+        }
+
         public static string ModeText(Mode mode) => mode switch
         {
             Mode.VR => "VR (헤드셋)",
@@ -68,7 +83,8 @@ namespace Bangkku.Input
 
         void Awake()
         {
-            Current = Decide(XRSettings.isDeviceActive, WithoutHeadset);
+            bool headset = HeadsetConnected();
+            Current = Decide(headset, WithoutHeadset);
             bool vr = UsesVr(Current);
 
             var vrObjects = VrRoot != null ? new List<GameObject> { VrRoot } : FindVrObjects();
@@ -89,7 +105,7 @@ namespace Bangkku.Input
                 Debug.LogWarning("[방꾸] ModeSelector: 시뮬레이터 모드인데 XR Device Simulator 를 찾지 못했습니다.", this);
 
             Debug.Log($"[방꾸] 실행 모드: {ModeText(Current)}" +
-                      (Current == Mode.Desktop && !XRSettings.isDeviceActive ? " (헤드셋 없음)" : string.Empty), this);
+                      (Current == Mode.Desktop && !headset ? " (헤드셋 없음)" : string.Empty), this);
         }
 
         static void SetActive(GameObject go, bool active)

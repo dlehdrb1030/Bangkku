@@ -46,7 +46,12 @@ namespace Bangkku.Placement
             t.localPosition = new Vector3(0f, size.y * 0.5f, 0f);
             t.localScale = size;
 
-            if (item.TryGetColor(out var color)) visual.GetComponent<MeshRenderer>().material.color = color;
+            // CreatePrimitive 의 기본 재질은 빌드(exe)에서 URP 셰이더가 아니라 분홍색으로 보인다. URP Lit 재질을 직접 넣는다
+            if (!item.TryGetColor(out var color)) color = Color.white;
+            var material = UrpMaterials.CreateLit(item.Id + " (박스 가구)", color);
+            var renderer = visual.GetComponent<MeshRenderer>();
+            if (material != null) renderer.sharedMaterial = material;
+            else renderer.material.color = color;
             return furniture;
         }
 

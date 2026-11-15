@@ -79,7 +79,7 @@ namespace Bangkku.Input
 
         void Start()
         {
-            if (DisableWhenXRActive && XRSettings.isDeviceActive)
+            if (DisableWhenXRActive && ModeSelector.HeadsetConnected())
             {
                 Debug.Log("[방꾸] VR 기기가 동작 중이라 데스크톱 모드를 끕니다.", this);
                 enabled = false;
