@@ -28,7 +28,8 @@ namespace Bangkku.FloorPlan
     {
         public const int PartCount = 4;
 
-        const float Gap = 0.003f; // 문짝 사이 틈
+        // 문짝 사이 틈. 3mm 는 VR 에서 1~2픽셀 선이라 머리를 움직일 때 자글자글해서 6mm 로 넓혔다
+        const float Gap = 0.006f;
         const float DoorT = 0.018f; // 문짝 두께
 
         public static ShapeMesh Build(string type, Vector3 size)
@@ -104,7 +105,8 @@ namespace Bangkku.FloorPlan
             s.Box(porcelain, sx1, hw, h - top, h, -hd, hd);
             s.Box(porcelain, sx0, sx1, h - top, h, -hd, sz0);
             s.Box(porcelain, sx0, sx1, h - top, h, sz1, hd);
-            s.Basin((int)FixturePart.Metal, sx0, sx1, sz0, sz1, h, basinDepth);
+            // 개수대 옆면은 상판 아래(h - top)부터. 상판 구멍 안쪽 면과 같은 평면·같은 방향으로 겹치면 VR 에서 깜빡인다 (z-fighting)
+            s.Basin((int)FixturePart.Metal, sx0, sx1, sz0, sz1, h - top, Mathf.Max(0.01f, basinDepth - top));
 
             // 수전: 개수대 뒤 기둥 + 앞으로 나온 토수구
             float fz = sz0 - 0.035f;
