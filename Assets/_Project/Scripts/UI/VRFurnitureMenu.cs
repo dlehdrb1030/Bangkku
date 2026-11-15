@@ -14,7 +14,9 @@ namespace Bangkku.UI
     /// <summary>
     /// 가구 메뉴 - VR 손목 메뉴 (팀장 가이드 3주차 ⑥). 왼손 컨트롤러 위에 떠 있는 패널을 오른손 레이로 누른다.
     /// VR 에서는 글자 입력이 어려워서 치수는 ± 버튼으로 바꾼다.
-    /// - 가구 목록: 침대·책상·소파·옷장 버튼을 누르면 이름과 치수가 채워진다
+    /// - 탭: "카탈로그 가구" / "새 박스 가구". 씬에 FurnitureFactory 가 있으면 카탈로그 탭으로 시작한다
+    /// - 카탈로그 가구: 팀원 catalog.json 목록을 한 쪽에 CatalogPageSize 개씩 (◀ ▶ 로 넘김). 누르면 바라보는 방향 앞 바닥에 만들고 선택 (CatalogMenu)
+    /// - 새 박스 가구 목록: 침대·책상·소파·옷장 버튼을 누르면 이름과 치수가 채워진다
     /// - W·D·H: -100 / -10 / +10 / +100 (mm), 신뢰도: 실측·도면·추정
     /// - 추가: 바라보는 방향 앞 바닥(바닥 밖이면 가장 넓은 방 가운데)에 박스 가구를 만들고 선택 (데스크톱 메뉴와 같은 BoxFurniture.AddNew)
     /// - 선택: 이전·다음으로 배치된 가구를 돌아가며 선택, 삭제. 선택한 가구 정보는 StatusPanel.CompactText (치수·신뢰도·가장 가까운 대상)
@@ -62,6 +64,9 @@ namespace Bangkku.UI
             new() { Name = "옷장", W = 1000, D = 600, H = 2000 },
         };
 
+        /// <summary>카탈로그 탭 한 쪽에 보이는 가구 수 (한 줄에 2개)</summary>
+        const int CatalogPageSize = 6;
+
         static readonly int[] Steps = { -100, -10, 10, 100 };
         static readonly string[] ConfidenceLabels = { "실측", "도면", "추정" };
 
@@ -87,13 +92,24 @@ namespace Bangkku.UI
         FloorPlanBuilder _floorPlan;
         float _nextAnchorSearch;
 
+        List<CatalogItem> _catalogItems = new();
+        int _catalogPage;
+        readonly UnityEngine.UI.Button[] _catalogButtons = new UnityEngine.UI.Button[CatalogPageSize];
+        readonly Text[] _catalogTexts = new Text[CatalogPageSize];
+        Text _pageText;
+        GameObject _catalogBody, _boxBody;
+        Image _catalogTabImage, _boxTabImage;
+
         void Start()
         {
             EnsureEventSystem();
+            _catalogItems = CatalogMenu.Items();
             Build();
             _open = StartOpen;
             ApplyOpen();
+            SetTab(_catalogItems.Count > 0);
             RefreshValues();
+            RefreshCatalog();
         }
 
         void LateUpdate()
@@ -159,6 +175,32 @@ namespace Bangkku.UI
         {
             _confidence = confidence;
             RefreshValues();
+        }
+
+        void SetTab(bool catalog)
+        {
+            _catalogBody.SetActive(catalog);
+            _boxBody.SetActive(!catalog);
+            _catalogTabImage.color = catalog ? ActiveColor : ButtonColor;
+            _boxTabImage.color = catalog ? ButtonColor : ActiveColor;
+        }
+
+        void TurnPage(int direction)
+        {
+            _catalogPage = CycleIndex(_catalogPage, direction, PageCount(_catalogItems.Count, CatalogPageSize));
+            RefreshCatalog();
+        }
+
+        /// <summary>쪽 수. 가구가 없으면 0</summary>
+        public static int PageCount(int count, int pageSize) => count <= 0 || pageSize <= 0 ? 0 : (count + pageSize - 1) / pageSize;
+
+        /// <summary>카탈로그 탭의 slot 번째 버튼: 지금 쪽의 가구를 바라보는 앞 바닥에 만들고 선택한다</summary>
+        void AddCatalog(int slot)
+        {
+            int index = _catalogPage * CatalogPageSize + slot;
+            if (index < 0 || index >= _catalogItems.Count) return;
+            CatalogMenu.Spawn(_catalogItems[index], SpawnPosition(), transform, out string message);
+            _infoText.text = message;
         }
 
         void Add()
@@ -273,6 +315,34 @@ namespace Bangkku.UI
                 _confidenceImages[i].color = i == (int)_confidence ? ActiveColor : ButtonColor;
         }
 
+        /// <summary>지금 쪽의 카탈로그 버튼 글자. 빈 칸은 투명하게 두어 버튼 크기가 바뀌지 않게 한다</summary>
+        void RefreshCatalog()
+        {
+            int pages = PageCount(_catalogItems.Count, CatalogPageSize);
+            if (pages == 0) return;
+            _catalogPage = Mathf.Clamp(_catalogPage, 0, pages - 1);
+
+            for (int slot = 0; slot < CatalogPageSize; slot++)
+            {
+                int index = _catalogPage * CatalogPageSize + slot;
+                bool has = index < _catalogItems.Count;
+                var button = _catalogButtons[slot];
+                button.interactable = has;
+                button.targetGraphic.color = has ? ButtonColor : Color.clear;
+                if (has)
+                {
+                    var item = _catalogItems[index];
+                    _catalogTexts[slot].text = $"{item.Name}\n{CatalogMenu.SizeText(item)} {ConfidenceLabel.Name(item.SizeConfidence)}";
+                }
+                else
+                {
+                    _catalogTexts[slot].text = "";
+                }
+            }
+
+            _pageText.text = $"{_catalogPage + 1} / {pages}";
+        }
+
         // ───────────── 화면 만들기 ─────────────
 
         void Build()
@@ -305,10 +375,21 @@ namespace Bangkku.UI
             Vertical(_body, 10);
             var body = (RectTransform)_body.transform;
 
-            Label(body, "가구 목록 (누르면 치수 채움)", FontSize - 4, FontStyle.Normal, 0f);
+            // 탭: 카탈로그 가구 / 새 박스 가구 (둘 다 펼치면 패널이 너무 길어진다)
+            var tabRow = Row(body, 56f);
+            _catalogTabImage = MakeButton(tabRow, "카탈로그 가구", () => SetTab(true), ButtonColor).GetComponent<Image>();
+            _boxTabImage = MakeButton(tabRow, "새 박스 가구", () => SetTab(false), ButtonColor).GetComponent<Image>();
+
+            _catalogBody = Section(body, "Catalog");
+            BuildCatalog((RectTransform)_catalogBody.transform);
+
+            _boxBody = Section(body, "NewBox");
+            var box = (RectTransform)_boxBody.transform;
+
+            Label(box, "가구 목록 (누르면 치수 채움)", FontSize - 4, FontStyle.Normal, 0f);
             for (int i = 0; i < Presets.Length; i += 2)
             {
-                var row = Row(body, 52f);
+                var row = Row(box, 52f);
                 for (int j = i; j < Mathf.Min(i + 2, Presets.Length); j++)
                 {
                     var preset = Presets[j];
@@ -316,12 +397,12 @@ namespace Bangkku.UI
                 }
             }
 
-            _nameText = Label(body, "", FontSize, FontStyle.Bold, 0f);
-            _wText = SizeRow(body, 'W');
-            _dText = SizeRow(body, 'D');
-            _hText = SizeRow(body, 'H');
+            _nameText = Label(box, "", FontSize, FontStyle.Bold, 0f);
+            _wText = SizeRow(box, 'W');
+            _dText = SizeRow(box, 'D');
+            _hText = SizeRow(box, 'H');
 
-            var confidenceRow = Row(body, 52f);
+            var confidenceRow = Row(box, 52f);
             for (int i = 0; i < ConfidenceLabels.Length; i++)
             {
                 var confidence = (Confidence)i;
@@ -329,7 +410,7 @@ namespace Bangkku.UI
                 _confidenceImages[i] = button.GetComponent<Image>();
             }
 
-            var addRow = Row(body, 64f);
+            var addRow = Row(box, 64f);
             MakeButton(addRow, "추가", Add, AddColor, -1f, FontSize + 2);
 
             _selectedText = Label(body, "선택: 없음", FontSize - 2, FontStyle.Normal, 0f);
@@ -343,6 +424,44 @@ namespace Bangkku.UI
             MakeButton(layoutRow, "배치 불러오기", LoadLayout, ButtonColor);
 
             _infoText = Label(body, "", FontSize - 4, FontStyle.Normal, 0f);
+        }
+
+        /// <summary>카탈로그 탭: 가구 버튼 CatalogPageSize 개(한 줄에 2개) + 쪽 넘김. 가구가 없으면 안내 한 줄</summary>
+        void BuildCatalog(RectTransform parent)
+        {
+            if (_catalogItems.Count == 0)
+            {
+                Label(parent, "카탈로그 가구 없음 (씬에 FurnitureFactory 가 없습니다)", FontSize - 4, FontStyle.Normal, 0f);
+                return;
+            }
+
+            Label(parent, "누르면 바라보는 앞 바닥에 놓음", FontSize - 4, FontStyle.Normal, 0f);
+            for (int first = 0; first < CatalogPageSize; first += 2)
+            {
+                var row = Row(parent, 72f);
+                for (int slot = first; slot < first + 2; slot++)
+                {
+                    int captured = slot;
+                    var button = MakeButton(row, "", () => AddCatalog(captured), ButtonColor, -1f, FontSize - 6);
+                    _catalogButtons[slot] = button;
+                    _catalogTexts[slot] = button.GetComponentInChildren<Text>();
+                }
+            }
+
+            var pageRow = Row(parent, 52f);
+            MakeButton(pageRow, "◀", () => TurnPage(-1), ButtonColor, 120f);
+            _pageText = Label(pageRow, "", FontSize - 2, FontStyle.Normal, 1f);
+            _pageText.alignment = TextAnchor.MiddleCenter;
+            MakeButton(pageRow, "▶", () => TurnPage(1), ButtonColor, 120f);
+            pageRow.gameObject.SetActive(PageCount(_catalogItems.Count, CatalogPageSize) > 1);
+        }
+
+        static GameObject Section(RectTransform parent, string name)
+        {
+            var go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            Vertical(go, 10);
+            return go;
         }
 
         Text SizeRow(RectTransform parent, char axis)
