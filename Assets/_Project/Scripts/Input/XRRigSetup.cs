@@ -6,6 +6,7 @@ using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.Interactors.Casters;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion.Movement;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Turning;
 using UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets;
@@ -60,12 +61,19 @@ namespace Bangkku.Input
                  "Starter Assets 기본값은 1.36 이라 앉은 눈높이처럼 가구가 크게 보인다")]
         public float SimulatorEyeHeightMeters = 1.6f;
 
+        [Header("이동")]
+        [Tooltip("왼쪽 스틱 이동 속도 (m/초). Starter Assets 기본값은 2.5. 11-16 Windows VR 시험 후 2/3 로 줄임 (빠를수록 멀미가 날 수 있음)")]
+        public float MoveSpeedMetersPerSecond = 1.67f;
+
         [Header("회전")]
         [Tooltip("켜면 오른쪽 스틱 좌우로 부드럽게 돈다. 끄면 Starter Assets 기본 스냅 회전(45°씩)")]
         public bool SmoothTurn = true;
 
-        [Tooltip("부드러운 회전 속도 (도/초). Starter Assets 기본값은 60. 60~120 사이에서 Windows VR 로 맞춘다 (빠를수록 멀미가 날 수 있음)")]
-        public float SmoothTurnDegreesPerSecond = 90f;
+        [Tooltip("부드러운 회전 속도 (도/초). 11-16 Windows VR 시험 후 90 → 60 (Starter Assets 기본값과 같음). 빠를수록 멀미가 날 수 있음")]
+        public float SmoothTurnDegreesPerSecond = 60f;
+
+        [Tooltip("켜면 오른쪽 스틱을 아래로 당겨 180° 돈다 (Starter Assets 기본 켬). 11-16 시험 후 끔")]
+        public bool TurnAround;
 
         [Header("떨어짐 복구")]
         [Tooltip("XR Origin 이 바닥보다 이만큼(m) 아래로 떨어지면 시작 위치로 되돌린다 (바닥 밖으로 나가 중력으로 떨어졌을 때). 0 이면 끔")]
@@ -170,6 +178,7 @@ namespace Bangkku.Input
         /// 스틱 회전 방식을 정한다. Starter Assets 의 손마다 있는 ControllerInputActionManager 가 Turn(부드러운)·Snap Turn 입력 중 하나만 켠다.
         /// 왼손은 이동(Smooth Motion)을 쓰므로 매니저가 왼손 회전 입력을 끄고, 실제로는 오른손만 바뀐다.
         /// 회전 Provider(ContinuousTurnProvider·SnapTurnProvider)는 프리팹에서 둘 다 켜져 있고 입력만 바뀐다.
+        /// 같은 자리에서 180° 돌기(TurnAround)와 왼쪽 스틱 이동 속도(ContinuousMoveProvider)도 맞춘다.
         /// </summary>
         void ApplyTurnMode()
         {
@@ -181,12 +190,28 @@ namespace Bangkku.Input
             }
 
             foreach (var provider in Origin.GetComponentsInChildren<ContinuousTurnProvider>(true))
+            {
                 provider.turnSpeed = SmoothTurnDegreesPerSecond;
+                provider.enableTurnAround = TurnAround;
+            }
+
+            foreach (var provider in Origin.GetComponentsInChildren<SnapTurnProvider>(true))
+                provider.enableTurnAround = TurnAround;
+
+            int movers = 0;
+            foreach (var provider in Origin.GetComponentsInChildren<ContinuousMoveProvider>(true))
+            {
+                provider.moveSpeed = MoveSpeedMetersPerSecond;
+                movers++;
+            }
 
             if (managers == 0)
                 Debug.LogWarning("[방꾸] XRRigSetup: ControllerInputActionManager 가 없어 회전 방식을 바꾸지 못했습니다.", this);
             else if (SmoothTurn)
-                Debug.Log($"[방꾸] 부드러운 회전 {SmoothTurnDegreesPerSecond:0}°/초", this);
+                Debug.Log($"[방꾸] 부드러운 회전 {SmoothTurnDegreesPerSecond:0}°/초, 180° 돌기 {(TurnAround ? "켬" : "끔")}, 이동 {MoveSpeedMetersPerSecond:0.##}m/초", this);
+
+            if (movers == 0)
+                Debug.LogWarning("[방꾸] XRRigSetup: ContinuousMoveProvider 가 없어 이동 속도를 바꾸지 못했습니다.", this);
         }
 
         void AddRayLayers()
