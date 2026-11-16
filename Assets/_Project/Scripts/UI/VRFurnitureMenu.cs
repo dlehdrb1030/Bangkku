@@ -84,6 +84,9 @@ namespace Bangkku.UI
 
         /// <summary>선택 탭 왼쪽 사진 한 변 (캔버스 픽셀, 패널 폭 640 기준)</summary>
         const float ThumbnailPixels = 150f;
+
+        /// <summary>추가 탭 카탈로그 버튼 높이와 그 안 왼쪽 사진 한 변 (버튼 안쪽 여백 CatalogPhotoMargin)</summary>
+        const float CatalogButtonHeight = 92f, CatalogPhotoMargin = 6f;
         static readonly Color PanelColor = new(0.10f, 0.11f, 0.13f, 0.92f);
         static readonly Color StripColor = new(0.16f, 0.18f, 0.20f, 1f);
         static readonly Color ButtonColor = new(0.26f, 0.28f, 0.32f, 1f);
@@ -118,6 +121,9 @@ namespace Bangkku.UI
         int _catalogPage;
         readonly UnityEngine.UI.Button[] _catalogButtons = new UnityEngine.UI.Button[CatalogPageSize];
         readonly Text[] _catalogTexts = new Text[CatalogPageSize];
+        readonly RawImage[] _catalogPhotos = new RawImage[CatalogPageSize];
+        readonly Image[] _catalogPhotoBacks = new Image[CatalogPageSize];
+        readonly Text[] _catalogPhotoLabels = new Text[CatalogPageSize];
         Text _pageText;
         GameObject _catalogBody, _boxBody;
         Image _catalogModeImage, _boxModeImage;
@@ -130,6 +136,9 @@ namespace Bangkku.UI
         RawImage _thumbImage;
         FurnitureItem _thumbItem;
         bool _thumbShown;
+
+        /// <summary>지난 프레임에 본 선택 가구 (바뀌면 선택 탭으로 넘어간다)</summary>
+        FurnitureItem _lastSelected;
 
         // 배치 탭
         FloorPlanSwitcher _switcher;
@@ -186,6 +195,15 @@ namespace Bangkku.UI
 
             if (!_open || ViewerMode.Active) return;
             var selected = FurnitureItem.All.Count > 0 ? SelectionManager.Instance.Selected : null;
+
+            // 다른 가구를 고르면(잡기·추가) 선택 탭으로 넘어가 그 가구의 사진·치수·상태를 보여 준다.
+            // 선택이 풀렸을 때(삭제 등)는 탭을 그대로 둔다. 지워진 가구도 다른 가구로 보도록 참조로 비교
+            if (!ReferenceEquals(selected, _lastSelected))
+            {
+                _lastSelected = selected;
+                if (selected != null && _tab != SelectTab) SetTab(SelectTab);
+            }
+
             _summaryText.text = SummaryText(selected);
             if (_tab == SelectTab) RefreshSelected(selected);
         }
@@ -296,8 +314,10 @@ namespace Bangkku.UI
         {
             int index = _catalogPage * CatalogPageSize + slot;
             if (index < 0 || index >= _catalogItems.Count) return;
-            CatalogMenu.Spawn(_catalogItems[index], SpawnPosition(), transform, out string message);
+            var furniture = CatalogMenu.Spawn(_catalogItems[index], SpawnPosition(), transform, out string message);
             ShowInfo(message);
+            // 만든 가구는 선택된 상태라 선택 탭에서 사진·치수·상태를 바로 보여 준다
+            if (furniture != null) SetTab(SelectTab);
         }
 
         void AddBox()
@@ -312,6 +332,7 @@ namespace Bangkku.UI
             var size = new SizeMm { W = _w, D = _d, H = _h };
             var furniture = BoxFurniture.AddNew(prefab, _name, size, _confidence, SpawnPosition(), transform);
             ShowInfo($"{BoxFurniture.Describe(furniture.Data)} 추가");
+            if (furniture != null) SetTab(SelectTab);
         }
 
         /// <summary>바라보는 방향(수평) 앞 SpawnDistanceMeters 의 바닥. 바닥 밖이면 가장 넓은 방 가운데</summary>
@@ -347,7 +368,7 @@ namespace Bangkku.UI
                 _confidenceImages[i].color = i == (int)_confidence ? ActiveColor : ButtonColor;
         }
 
-        /// <summary>지금 쪽의 카탈로그 버튼 글자 (굵은 이름 + 작은 치수). 빈 칸은 투명하게 두어 버튼 크기가 바뀌지 않게 한다</summary>
+        /// <summary>지금 쪽의 카탈로그 버튼 (왼쪽 가구 사진 + 오른쪽 이름). 빈 칸은 투명하게 두어 버튼 크기가 바뀌지 않게 한다</summary>
         void RefreshCatalog()
         {
             int pages = PageCount(_catalogItems.Count, CatalogPageSize);
@@ -361,16 +382,20 @@ namespace Bangkku.UI
                 var button = _catalogButtons[slot];
                 button.interactable = has;
                 button.targetGraphic.color = has ? ButtonColor : Color.clear;
-                _catalogTexts[slot].text = has ? CatalogButtonText(_catalogItems[index]) : "";
+                var item = has ? _catalogItems[index] : null;
+                _catalogTexts[slot].text = has ? $"<b>{item.Name}</b>" : "";
+
+                // 사진이 없으면 어두운 칸에 종류 글자 (3DGS·메쉬·박스), 박스 가구는 가구 색
+                var texture = has ? FurnitureThumbnails.Get(item.Id) : null;
+                _catalogPhotos[slot].texture = texture;
+                _catalogPhotos[slot].enabled = texture != null;
+                _catalogPhotoBacks[slot].enabled = has;
+                _catalogPhotoBacks[slot].color = has && item.TryGetColor(out var color) ? color : StripColor;
+                _catalogPhotoLabels[slot].text = has && texture == null ? SourceShort(item.Source) : "";
             }
 
             _pageText.text = $"{_catalogPage + 1} / {pages}";
         }
-
-        /// <summary>"<b>침대</b>\n1700×2100 · 도면" (치수는 W×D, 높이는 선택 탭에서)</summary>
-        public static string CatalogButtonText(CatalogItem item) =>
-            $"<b>{item.Name}</b>\n<size={SmallFontSize}><color=#{ColorUtility.ToHtmlStringRGB(MutedTextColor)}>" +
-            $"{item.Size.W}×{item.Size.D} · {ConfidenceLabel.Name(item.SizeConfidence)}</color></size>";
 
         // ───────────── 선택 탭 ─────────────
 
@@ -603,7 +628,8 @@ namespace Bangkku.UI
             BuildBox((RectTransform)_boxBody.transform);
         }
 
-        /// <summary>카탈로그: 가구 버튼 CatalogPageSize 개(한 줄에 2개) + 쪽 넘김. 가구가 없으면 안내 한 줄</summary>
+        /// <summary>카탈로그: 가구 버튼 CatalogPageSize 개(한 줄에 2개, 왼쪽 사진 + 오른쪽 이름) + 쪽 넘김. 가구가 없으면 안내 한 줄.
+        /// 누르면 가구를 만들고 선택 탭으로 넘어간다 (치수·신뢰도는 선택 탭에서)</summary>
         void BuildCatalog(RectTransform parent)
         {
             if (_catalogItems.Count == 0)
@@ -614,13 +640,13 @@ namespace Bangkku.UI
 
             for (int first = 0; first < CatalogPageSize; first += 2)
             {
-                var row = Row(parent, 78f);
+                var row = Row(parent, CatalogButtonHeight);
                 for (int slot = first; slot < first + 2; slot++)
                 {
                     int captured = slot;
                     var button = MakeButton(row, "", () => AddCatalog(captured), ButtonColor, -1f, FontSize - 2);
                     _catalogButtons[slot] = button;
-                    _catalogTexts[slot] = button.GetComponentInChildren<Text>();
+                    BuildCatalogPhoto(button, slot);
                 }
             }
 
@@ -630,6 +656,44 @@ namespace Bangkku.UI
             _pageText.alignment = TextAnchor.MiddleCenter;
             MakeButton(pageRow, "▶", () => TurnPage(1), ButtonColor, 120f);
             pageRow.gameObject.SetActive(PageCount(_catalogItems.Count, CatalogPageSize) > 1);
+        }
+
+        /// <summary>카탈로그 버튼 안: 왼쪽에 정사각 사진 칸(배경 + 사진 + 사진 없을 때 글자), 이름 글자는 사진 오른쪽에 왼쪽 정렬</summary>
+        void BuildCatalogPhoto(UnityEngine.UI.Button button, int slot)
+        {
+            // MakeButton 이 만든 글자를 사진 칸(안에 글자가 또 있음)을 만들기 전에 잡아 둔다
+            var text = button.GetComponentInChildren<Text>();
+            float side = CatalogButtonHeight - CatalogPhotoMargin * 2f;
+            var frame = new GameObject("Photo", typeof(RectTransform));
+            frame.transform.SetParent(button.transform, false);
+            var rect = (RectTransform)frame.transform;
+            rect.anchorMin = new Vector2(0f, 0.5f);
+            rect.anchorMax = new Vector2(0f, 0.5f);
+            rect.pivot = new Vector2(0f, 0.5f);
+            rect.anchoredPosition = new Vector2(CatalogPhotoMargin, 0f);
+            rect.sizeDelta = new Vector2(side, side);
+            _catalogPhotoBacks[slot] = frame.AddComponent<Image>();
+            _catalogPhotoBacks[slot].raycastTarget = false;
+
+            var photo = new GameObject("Image", typeof(RectTransform)).AddComponent<RawImage>();
+            photo.transform.SetParent(frame.transform, false);
+            Stretch(photo.rectTransform);
+            photo.raycastTarget = false;
+            _catalogPhotos[slot] = photo;
+
+            var label = Label(rect, "", SmallFontSize, FontStyle.Bold, 0f);
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = MutedTextColor;
+            Stretch(label.rectTransform);
+            _catalogPhotoLabels[slot] = label;
+
+            // MakeButton 의 글자는 버튼 전체에 늘어나 있다 → 사진 오른쪽으로 비켜 왼쪽 정렬
+            text.rectTransform.SetAsLastSibling();
+            text.rectTransform.offsetMin = new Vector2(side + CatalogPhotoMargin * 3f, 0f);
+            text.rectTransform.offsetMax = new Vector2(-CatalogPhotoMargin, 0f);
+            text.alignment = TextAnchor.MiddleLeft;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            _catalogTexts[slot] = text;
         }
 
         /// <summary>박스 직접: 프리셋 4개(2줄), 이름, W·D·H ± 버튼, 신뢰도, 추가</summary>
