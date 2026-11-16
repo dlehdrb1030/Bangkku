@@ -514,8 +514,10 @@ MonoBehaviour:
   StartYawDegrees: 180
   ApplySimulatorEyeHeight: 1
   SimulatorEyeHeightMeters: 1.6
+  MoveSpeedMetersPerSecond: 1.67
   SmoothTurn: 1
-  SmoothTurnDegreesPerSecond: 90
+  SmoothTurnDegreesPerSecond: 60
+  TurnAround: 0
   ResetBelowMeters: 2
 --- !u!4 &705946131
 Transform:
