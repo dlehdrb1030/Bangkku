@@ -76,7 +76,7 @@
       "id": "office_chair_01",
       "name": "사무용 의자",
       "source": "scan",
-      "prefab": "Prefabs/Furniture/office_chair_01",
+      "prefab": "Prefabs/Furniture/office_chair_02",
       "size": {
         "w": 640,
         "d": 640,
@@ -84,11 +84,11 @@
       },
       "sizeConfidence": "drawing",
       "splatMeasuredSize": {
-        "w": 641,
-        "d": 606,
-        "h": 868
+        "w": 643,
+        "d": 632,
+        "h": 887
       },
-      "fitError": 0.1561
+      "fitError": 0.12
     },
     {
       "id": "round_table_01",
@@ -148,7 +148,7 @@
       "id": "sofa_01",
       "name": "3인용 소파",
       "source": "scan",
-      "prefab": "Prefabs/Furniture/sofa_01",
+      "prefab": "Prefabs/Furniture/sofa_02",
       "size": {
         "w": 2320,
         "d": 930,
@@ -156,11 +156,11 @@
       },
       "sizeConfidence": "drawing",
       "splatMeasuredSize": {
-        "w": 1421,
-        "d": 595,
-        "h": 566
+        "w": 1487,
+        "d": 618,
+        "h": 583
       },
-      "fitError": 0.0748
+      "fitError": 0.0744
     },
     {
       "id": "standbyme_01",

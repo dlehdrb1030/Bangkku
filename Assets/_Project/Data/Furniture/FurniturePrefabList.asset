@@ -21,15 +21,15 @@ MonoBehaviour:
     Prefab: {fileID: 5895233920621093384, guid: eb27e515d4264b4c9d8be33df3b6ccce, type: 3}
   - Key: Prefabs/Furniture/desk_01
     Prefab: {fileID: 5895233920621093384, guid: be1c253277d3272469b7c9653e6582c4, type: 3}
-  - Key: Prefabs/Furniture/office_chair_01
-    Prefab: {fileID: 5895233920621093384, guid: 7420766e97c04817b5859dee64b2239d, type: 3}
+  - Key: Prefabs/Furniture/office_chair_02
+    Prefab: {fileID: 5895233920621093384, guid: c8fa95e24c9a4dac998a7b65105b3125, type: 3}
   - Key: Prefabs/Furniture/round_table_01
     Prefab: {fileID: 5895233920621093384, guid: 4a8a51e001ab4171888528cafc13163f, type: 3}
   - Key: Prefabs/Furniture/round_table_02
     Prefab: {fileID: 5895233920621093384, guid: 183d5f40392a40abb71402d7fbe0ab84, type: 3}
   - Key: Prefabs/Furniture/shell_chair_01
     Prefab: {fileID: 5895233920621093384, guid: 9d628cf519f447f2af8c055d114f36e1, type: 3}
-  - Key: Prefabs/Furniture/sofa_01
-    Prefab: {fileID: 5895233920621093384, guid: 5a32f3393d8c46239c218fdac26fa5d8, type: 3}
+  - Key: Prefabs/Furniture/sofa_02
+    Prefab: {fileID: 5895233920621093384, guid: 51d3e6ae56da43f3839bcf0cee2a63de, type: 3}
   - Key: Prefabs/Furniture/standbyme_01
     Prefab: {fileID: 5895233920621093384, guid: 336fb0bd559743268be9fb2994089ffa, type: 3}
