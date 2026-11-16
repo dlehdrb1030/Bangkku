@@ -44,6 +44,9 @@ namespace Bangkku.Placement
         [Tooltip("이 거리(mm) 이내면 벽에 붙인다")]
         public int WallSnapMm = PositionSnap.WallThresholdMm;
 
+        [Tooltip("벽 안으로 이만큼(mm)까지 들어간 가구는 벽 면으로 되돌린다 (모서리 두 벽에 붙이기 쉽게). 0 이면 끔. 벽 겹침을 보여 주려면 이보다 깊이 밀거나 데스크톱 Alt")]
+        public int WallPushOutMm = PositionSnap.WallPushOutMm;
+
         FurnitureItem _selected;
 
         /// <summary>선택한 적이 있는지. 가구가 지워지면 _selected 가 null 처럼 보여서, 지워진 것을 알아채려고 따로 둔다</summary>
@@ -135,7 +138,8 @@ namespace Bangkku.Placement
                     t.eulerAngles.y,
                     GetWalls(),
                     GridSnap && applyGrid ? GridMm : 0,
-                    WallSnap ? WallSnapMm : 0);
+                    WallSnap ? WallSnapMm : 0,
+                    WallSnap ? WallPushOutMm : 0);
                 position = new Vector3(xz.x, position.y, xz.y);
             }
 

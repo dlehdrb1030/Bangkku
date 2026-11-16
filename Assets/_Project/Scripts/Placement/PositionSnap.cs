@@ -32,13 +32,17 @@ namespace Bangkku.Placement
 
     /// <summary>
     /// 가구 위치 스냅 (팀장 가이드 2주차): 10mm 격자에 맞추고, 가구 가장자리가 벽에서 30mm 이내면 벽에 붙인다.
+    /// 벽 안으로 WallPushOutMm 이내로 들어가도 벽 면으로 되돌려 붙인다 (11-16: VR 에서 모서리 두 벽에 붙이기 쉽게).
     /// 계산은 바닥에서 본 2D(월드 XZ, m)로 하며 회전한 가구도 처리한다.
-    /// 겹침 판정은 하지 않는다: 이미 벽과 겹친 가구는 건드리지 않는다 (판정은 PlacementValidator).
+    /// 그보다 깊이 벽과 겹친 가구는 건드리지 않는다 (판정은 PlacementValidator).
     /// </summary>
     public static class PositionSnap
     {
         public const int GridMm = 10;
         public const int WallThresholdMm = 30;
+
+        /// <summary>벽 안으로 이만큼(mm)까지 들어간 가구는 벽 면으로 되돌린다</summary>
+        public const int WallPushOutMm = 150;
 
         /// <summary>벽에 붙인 뒤 다시 다른 벽에 붙을 수 있는 횟수 (모서리에서 두 벽)</summary>
         const int MaxWallPasses = 4;
@@ -83,20 +87,23 @@ namespace Bangkku.Placement
         /// <param name="center">가구 바닥면 중앙 (월드 XZ, m)</param>
         /// <param name="halfSize">가구 가로·세로 절반 (x = W/2, y = D/2, m)</param>
         /// <param name="yawDegrees">가구 Y 회전</param>
+        /// <param name="wallPushOutMm">벽 안으로 이만큼까지 들어간 가구는 벽 면으로 되돌린다. 0 이면 되돌리지 않음</param>
         public static Vector2 Apply(Vector2 center, Vector2 halfSize, float yawDegrees, IReadOnlyList<WallRect> walls,
-            int gridMm, int wallThresholdMm)
+            int gridMm, int wallThresholdMm, int wallPushOutMm = 0)
         {
             if (gridMm > 0) center = SnapGrid(center, gridMm);
             if (wallThresholdMm > 0 && walls != null)
-                center = SnapToWalls(center, halfSize, yawDegrees, walls, wallThresholdMm * 0.001f);
+                center = SnapToWalls(center, halfSize, yawDegrees, walls, wallThresholdMm * 0.001f, Mathf.Max(0, wallPushOutMm) * 0.001f);
             return RoundMm(center);
         }
 
         /// <summary>
         /// 가구 가장자리와 벽 면 사이 틈이 0 초과 thresholdM 이하이면 틈이 0 이 되도록 벽 쪽으로 옮긴다.
-        /// 모서리에서는 두 벽 모두에 붙는다.
+        /// 벽 안으로 pushOutM 이하만큼 들어가 있으면 벽 면까지 되돌린다 (가구 중심이 있는 쪽으로).
+        /// 가장 가까운 벽부터 하나씩 맞추므로 모서리에서는 두 벽 모두에 붙는다.
         /// </summary>
-        public static Vector2 SnapToWalls(Vector2 center, Vector2 halfSize, float yawDegrees, IReadOnlyList<WallRect> walls, float thresholdM)
+        public static Vector2 SnapToWalls(Vector2 center, Vector2 halfSize, float yawDegrees, IReadOnlyList<WallRect> walls, float thresholdM,
+            float pushOutM = 0f)
         {
             float r = yawDegrees * Mathf.Deg2Rad;
             var furnitureX = new Vector2(Mathf.Cos(r), -Mathf.Sin(r)); // 가구 가로(W) 방향
@@ -104,7 +111,7 @@ namespace Bangkku.Placement
 
             for (int pass = 0; pass < MaxWallPasses; pass++)
             {
-                float bestGap = float.MaxValue;
+                float bestGap = float.MaxValue; // 고른 벽의 |틈|
                 Vector2 bestMove = Vector2.zero;
 
                 foreach (var wall in walls)
@@ -112,8 +119,10 @@ namespace Bangkku.Placement
                     var offset = center - wall.Center;
 
                     float distance = Vector2.Dot(offset, wall.Normal);
+                    // 틈 > 0: 벽에서 떨어짐, 틈 < 0: 벽 안으로 들어감
                     float gap = Mathf.Abs(distance) - (wall.HalfThickness + Extent(wall.Normal, halfSize, furnitureX, furnitureZ));
-                    if (gap <= TouchingM || gap > thresholdM || gap >= bestGap) continue;
+                    float size = Mathf.Abs(gap);
+                    if (size <= TouchingM || gap > thresholdM || gap < -pushOutM || size >= bestGap) continue;
 
                     // 같은 벽 옆에 있어야 한다: 벽 길이 방향으로 가구와 벽이 겹쳐야 함
                     float along = Vector2.Dot(offset, wall.Along);
@@ -121,7 +130,8 @@ namespace Bangkku.Placement
                     float overlap = Mathf.Min(along + alongRadius, wall.HalfLength) - Mathf.Max(along - alongRadius, -wall.HalfLength);
                     if (overlap < MinAlongOverlapM) continue;
 
-                    bestGap = gap;
+                    // 틈이 양수면 벽 쪽으로, 음수면 벽에서 멀어지는 쪽으로 |틈| 만큼
+                    bestGap = size;
                     bestMove = -Mathf.Sign(distance) * gap * wall.Normal;
                 }
 

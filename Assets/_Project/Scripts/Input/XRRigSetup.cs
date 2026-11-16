@@ -75,6 +75,12 @@ namespace Bangkku.Input
         [Tooltip("켜면 오른쪽 스틱을 아래로 당겨 180° 돈다 (Starter Assets 기본 켬). 11-16 시험 후 끔")]
         public bool TurnAround;
 
+        [Header("화질")]
+        [Tooltip("헤드셋 렌더 해상도 배율 (XRSettings.eyeTextureResolutionScale). 1 보다 크면 크게 그려 줄여 보내므로 " +
+                 "MSAA 없이도 벽 모서리·무늬가 돌 때 자글거리는 것이 줄어든다. 11-16: MSAA 는 3DGS 를 깨뜨려 대신 사용. " +
+                 "GPU 비용은 배율의 제곱 (1.3 → 약 1.7배), Windows VR 에서 72fps 를 확인하며 맞춘다. 1 이면 런타임 기본")]
+        [Range(1f, 2f)] public float EyeResolutionScale = 1.3f;
+
         [Header("떨어짐 복구")]
         [Tooltip("XR Origin 이 바닥보다 이만큼(m) 아래로 떨어지면 시작 위치로 되돌린다 (바닥 밖으로 나가 중력으로 떨어졌을 때). 0 이면 끔")]
         public float ResetBelowMeters = 2f;
@@ -101,6 +107,7 @@ namespace Bangkku.Input
             {
                 if (ApplySimulatorEyeHeight) SetSimulatorEyeHeight();
                 ApplyTurnMode();
+                ApplyResolutionScale();
             }
 
             if (FloorPlan == null)
@@ -212,6 +219,15 @@ namespace Bangkku.Input
 
             if (movers == 0)
                 Debug.LogWarning("[방꾸] XRRigSetup: ContinuousMoveProvider 가 없어 이동 속도를 바꾸지 못했습니다.", this);
+        }
+
+        /// <summary>헤드셋이 있을 때만 렌더 해상도 배율을 바꾼다 (시뮬레이터·데스크톱은 그대로)</summary>
+        void ApplyResolutionScale()
+        {
+            // OpenXR 은 시작 직후 XRSettings.isDeviceActive 가 false 일 수 있어 XR 로더 초기화까지 본다 (ModeSelector 와 같은 기준)
+            if (!ModeSelector.HeadsetConnected() || Mathf.Approximately(EyeResolutionScale, 1f)) return;
+            XRSettings.eyeTextureResolutionScale = EyeResolutionScale;
+            Debug.Log($"[방꾸] 헤드셋 렌더 해상도 배율 {EyeResolutionScale:0.##} ({XRSettings.eyeTextureWidth}×{XRSettings.eyeTextureHeight})", this);
         }
 
         void AddRayLayers()
