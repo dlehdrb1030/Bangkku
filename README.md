@@ -50,6 +50,7 @@ Project Settings는 저장소에 커밋되어 있으므로 clone한 사람은 �
 | [docs/06_방꾸_Windows_세팅_데스크톱테스트.md](docs/06_방꾸_Windows_세팅_데스크톱테스트.md) | Windows VR PC 세팅, 데스크톱 모드·빌드 테스트, 3DGS 로컬 테스트 |
 | [docs/07_방꾸_VR_테스트.md](docs/07_방꾸_VR_테스트.md) | Quest + Link 연결, VR 기본·3DGS 테스트, FPS 측정, 되돌리기·기록 |
 | [docs/09_방꾸_팀원_가구작업_안내.md](docs/09_방꾸_팀원_가구작업_안내.md) | 팀원 가구 작업: 브랜치 정리, 정할 것, 단계별 할 일, PR 확인, 팀장에게 넘길 것 |
+| [docs/11_방꾸_성능_정확도_평가.md](docs/11_방꾸_성능_정확도_평가.md) | 성능 측정표(Windows VR ODT), 정확도 평가표(평면도 치수, 가구 외관 보정 오차, 판정 정밀도) |
 | [CLAUDE.md](CLAUDE.md) | Claude Code 작업 규칙 |
 
 ## 폴더
