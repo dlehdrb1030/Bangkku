@@ -57,7 +57,8 @@ namespace Bangkku.UI
         {
             // 판정은 Update 에서 끝나므로 LateUpdate 에서 이번 프레임 값으로 글을 만든다 (OnGUI 는 한 프레임에 여러 번 불린다)
             // 가구가 없는 씬(Test_FloorPlan 등)에서는 SelectionManager·PlacementValidator 를 만들지 않도록 먼저 본다
-            if (Hidden || FurnitureItem.All.Count == 0)
+            // 뷰어 모드에서는 패널을 숨긴다
+            if (Hidden || ViewerMode.Active || FurnitureItem.All.Count == 0)
             {
                 _text = string.Empty;
                 return;
@@ -153,7 +154,7 @@ namespace Bangkku.UI
         }
 
         /// <summary>"벽 w3_0 32mm (도면 ±30mm)". MaxGap 안에 아무것도 없으면 "1m 안에 없음"</summary>
-        static string NearestText(FurnitureItem item, PlacementValidator validator, bool withConfidence = true)
+        public static string NearestText(FurnitureItem item, PlacementValidator validator, bool withConfidence = true)
         {
             if (!validator.TryGetGap(item, out var gap) || !gap.HasTarget) return $"{validator.MaxGapMeters:0.#}m 안에 없음";
             string target = TargetText(DistanceLabel.TargetKind(gap.Target), DistanceLabel.TargetName(gap.Target));

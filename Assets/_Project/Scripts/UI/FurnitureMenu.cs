@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using Bangkku.Core;
 using Bangkku.FloorPlan;
+using Bangkku.Furniture;
 using Bangkku.IO;
 using Bangkku.Placement;
 using UnityEngine;
@@ -13,9 +15,13 @@ namespace Bangkku.UI
     /// 화면이 작으면 패널 안을 휠로 스크롤한다 (위: 배치 저장·불러오기, 새 박스 가구, 아래: 배치된 가구 목록).
     /// - 배치 저장·불러오기: LayoutSaver (persistentDataPath/layouts/&lt;평면도 이름&gt;.json). 불러오면 지금 가구를 지우고 저장한 대로 다시 만든다
     /// - 배치된 가구 목록: 누르면 선택, 선택한 가구 삭제
+    /// - 평면도: 씬에 FloorPlanSwitcher 가 있고 평면도가 2개 이상이면 버튼 줄. 누르면 지금 배치를 자동 저장하고 그 평면도로 바꾼다
+    /// - 카탈로그 가구: 씬의 FurnitureFactory(팀원) 카탈로그 목록. 누르면 새 박스 가구와 같은 자리에 만들고 선택 (CatalogMenu).
+    ///   씬에 FurnitureFactory 가 없으면 이 칸을 숨긴다
     /// - 새 박스 가구: 이름, W·D·H (mm), 치수 신뢰도(실측·도면·추정)를 넣고 추가 → 화면 가운데 바닥(바닥이 아니면 가장 넓은 방 가운데)에 만들고 선택
     ///   id 는 box_01, box_02 … 로 자동. source = box 라서 팀원의 catalog.json 없이 동작한다
     /// - Tab: 열기·닫기. 입력칸에 글자를 넣는 동안에는 DesktopController 의 Q/E·WASD 가 가구·시점을 움직이지 않는다
+    /// - 뷰어 버튼(V 키와 같음): 뷰어 모드(ViewerMode)를 켠다. 뷰어 모드에서는 메뉴 대신 "편집 모드로" 버튼 하나만 보인다
     /// VR 기기가 동작 중이면 숨긴다 (VR 손목 메뉴는 다음 작업).
     /// 씬에 빈 오브젝트로 두고 Prefab 칸에 FurnitureItem_Base 를 넣는다 (비워 두면 씬의 TestFurnitureSpawner 프리팹을 쓴다).
     /// </summary>
@@ -66,6 +72,14 @@ namespace Bangkku.UI
         string _layoutMessage;
         bool _layoutMessageIsError, _hasSave;
         float _nextSaveCheck;
+        List<CatalogItem> _catalogItems;
+        CatalogItem _pendingCatalog;
+        bool _pendingViewerToggle;
+        int _pendingPlan = -1;
+        string _planMessage;
+        bool _planMessageIsError;
+        string _catalogMessage;
+        bool _catalogMessageIsError;
         FloorPlanBuilder _floorPlan;
         GUIStyle _label, _header, _button, _field, _toggle, _box, _error;
 
@@ -81,8 +95,36 @@ namespace Bangkku.UI
 
         void Update()
         {
+            if (_pendingCatalog != null)
+            {
+                var item = _pendingCatalog;
+                _pendingCatalog = null;
+                AddCatalog(item);
+            }
+
+            // 평면도도 OnGUI 도중에 바꾸면 가구 목록 개수가 달라지므로 여기서 바꾼다
+            if (_pendingPlan >= 0)
+            {
+                int index = _pendingPlan;
+                _pendingPlan = -1;
+                var switcher = FloorPlanSwitcher.Instance;
+                if (switcher != null)
+                {
+                    _planMessageIsError = !switcher.SwitchTo(index, out _planMessage);
+                    _nextSaveCheck = 0f;
+                }
+            }
+
+            // OnGUI 도중에 모드를 바꾸면 Layout 과 Repaint 사이에 그리는 칸이 달라지므로 여기서 바꾼다
+            if (_pendingViewerToggle)
+            {
+                _pendingViewerToggle = false;
+                GUIUtility.keyboardControl = 0;
+                ViewerMode.Toggle();
+            }
+
             var keyboard = Keyboard.current;
-            if (keyboard == null || Hidden || IsTyping) return;
+            if (keyboard == null || Hidden || IsTyping || ViewerMode.Active) return;
             if (keyboard.tabKey.wasPressedThisFrame) _open = !_open;
         }
 
@@ -99,12 +141,25 @@ namespace Bangkku.UI
             var e = Event.current;
             float x = Screen.width - PanelWidth - 8f;
 
+            // 뷰어 모드: 화면을 가리지 않도록 돌아가는 버튼 하나만
+            if (ViewerMode.Active)
+            {
+                _panelRect = new Rect(x, PanelTop, PanelWidth, 34f);
+                _panelVisible = true;
+                IsTyping = false;
+                if (GUI.Button(_panelRect, "뷰어 모드 · 편집 모드로 (V)", _button)) _pendingViewerToggle = true;
+                return;
+            }
+
             if (!_open)
             {
                 _panelRect = new Rect(x, PanelTop, PanelWidth, 34f);
                 _panelVisible = true;
                 IsTyping = false;
-                if (GUI.Button(_panelRect, "가구 메뉴 열기 (Tab)", _button)) _open = true;
+                const float viewerWidth = 110f;
+                if (GUI.Button(new Rect(x, PanelTop, PanelWidth - viewerWidth - 6f, 34f), "가구 메뉴 열기 (Tab)", _button)) _open = true;
+                if (GUI.Button(new Rect(x + PanelWidth - viewerWidth, PanelTop, viewerWidth, 34f), "뷰어 (V)", _button))
+                    _pendingViewerToggle = true;
                 return;
             }
 
@@ -128,13 +183,16 @@ namespace Bangkku.UI
             GUILayout.BeginHorizontal();
             GUILayout.Label("가구 메뉴", _header);
             GUILayout.FlexibleSpace();
+            if (GUILayout.Button("뷰어 (V)", _button, GUILayout.Width(86f))) _pendingViewerToggle = true;
             if (GUILayout.Button("닫기 (Tab)", _button, GUILayout.Width(96f))) _open = false;
             GUILayout.EndHorizontal();
 
             // 화면이 작아도 아래 내용에 닿도록 패널 전체를 스크롤한다. 자주 쓰는 입력칸을 위에 둔다
             _panelScroll = GUILayout.BeginScrollView(_panelScroll);
+            if (DrawFloorPlans()) GUILayout.Space(12f);
             DrawLayout();
             GUILayout.Space(12f);
+            if (DrawCatalog()) GUILayout.Space(12f);
             DrawNewBox();
             GUILayout.Space(12f);
             DrawPlacedList();
@@ -142,6 +200,40 @@ namespace Bangkku.UI
             GUILayout.EndArea();
 
             IsTyping = GUIUtility.keyboardControl != 0;
+        }
+
+        // ───────────── 평면도 ─────────────
+
+        /// <summary>평면도 버튼 줄 (한 줄에 2개). FloorPlanSwitcher 가 없거나 평면도가 2개 미만이면 그리지 않고 false</summary>
+        bool DrawFloorPlans()
+        {
+            var switcher = FloorPlanSwitcher.Instance;
+            if (switcher == null || !switcher.HasChoices) return false;
+
+            GUILayout.Label("평면도 (누르면 지금 배치 저장 후 이동)", _header);
+            int current = switcher.CurrentIndex;
+            int inRow = 0;
+            GUILayout.BeginHorizontal();
+            for (int i = 0; i < switcher.Plans.Count; i++)
+            {
+                var entry = switcher.Plans[i];
+                if (entry == null || entry.Json == null) continue;
+                if (inRow == 2)
+                {
+                    GUILayout.EndHorizontal();
+                    GUILayout.BeginHorizontal();
+                    inRow = 0;
+                }
+
+                bool isCurrent = i == current;
+                string text = isCurrent ? $"● {switcher.LabelOf(i)} (지금)" : switcher.LabelOf(i);
+                if (GUILayout.Toggle(isCurrent, text, _toggle, GUILayout.Height(28f)) && !isCurrent) _pendingPlan = i;
+                inRow++;
+            }
+
+            GUILayout.EndHorizontal();
+            if (!string.IsNullOrEmpty(_planMessage)) GUILayout.Label(_planMessage, _planMessageIsError ? _error : _label);
+            return true;
         }
 
         // ───────────── 배치 저장·불러오기 ─────────────
@@ -222,6 +314,37 @@ namespace Bangkku.UI
             if (item == null) return;
             ShowMessage($"{DisplayName(item)} ({item.ItemId}) 를 지웠습니다.", false);
             BoxFurniture.Delete(item);
+        }
+
+        // ───────────── 카탈로그 가구 ─────────────
+
+        /// <summary>카탈로그 가구 버튼 목록. 씬에 FurnitureFactory 가 없거나 목록이 비면 그리지 않고 false</summary>
+        bool DrawCatalog()
+        {
+            // 팩토리를 찾을 때까지만 다시 읽는다 (CatalogMenu.Factory 가 1초에 한 번만 찾는다)
+            if (_catalogItems == null || _catalogItems.Count == 0) _catalogItems = CatalogMenu.Items();
+            if (_catalogItems.Count == 0) return false;
+
+            GUILayout.Label($"카탈로그 가구 ({_catalogItems.Count})", _header);
+            CatalogItem clicked = null;
+            foreach (var item in _catalogItems)
+            {
+                string text = $"{item.Name}  {CatalogMenu.SizeText(item)}  {ConfidenceLabel.Name(item.SizeConfidence)}";
+                if (GUILayout.Button(text, _toggle)) clicked = item;
+            }
+
+            if (!string.IsNullOrEmpty(_catalogMessage)) GUILayout.Label(_catalogMessage, _catalogMessageIsError ? _error : _label);
+
+            // OnGUI 도중에 가구를 만들면 아래 "배치된 가구" 목록 개수가 Layout 때와 달라지므로 다음 Update 에서 만든다
+            if (clicked != null) _pendingCatalog = clicked;
+            return true;
+        }
+
+        /// <summary>카탈로그 가구를 새 박스 가구와 같은 자리(화면 가운데 바닥)에 만들고 선택한다</summary>
+        void AddCatalog(CatalogItem item)
+        {
+            var furniture = CatalogMenu.Spawn(item, SpawnPosition(), transform, out _catalogMessage);
+            _catalogMessageIsError = furniture == null;
         }
 
         // ───────────── 새 박스 가구 ─────────────

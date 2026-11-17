@@ -7,23 +7,28 @@ using UnityEngine;
 namespace Bangkku.Placement
 {
     /// <summary>
-    /// 테스트 씬용 박스 가구 생성기. catalog.json(팀원 소유) 없이 CatalogItem 을 코드로 만들어
-    /// FurnitureItem_Base 프리팹에서 가구를 만든다 (source = box). 팀원의 3DGS 가구가 오기 전까지 배치 동작을 시험하는 용도다.
-    /// 씬에 빈 오브젝트로 두고 Prefab 칸에 FurnitureItem_Base 프리팹을 넣는다.
+    /// 평면도별 기본 가구 배치. Play 를 시작하거나 저장한 배치가 없는 평면도로 바꿀 때(FloorPlanSwitcher)
+    /// 씬의 FurnitureFactory(팀원 catalog.json)로 3DGS 가구를 정해 둔 자리에 놓는다.
+    /// - oneroom_02: 침대(오른쪽 아래 구석, 머리판은 발코니 쪽 벽), 검은 책상(맞은편 화장실 벽에 붙임)
+    /// - tworoom_01: 침대(침실2 왼쪽 위 구석, 머리판은 창 쪽 위 벽), 소파(거실 오른쪽 벽에 붙임)
+    /// - 정해 둔 자리가 없는 평면도는 빈 방
+    /// 씬에 평면도 바꾸기(FloorPlanSwitcher)가 있으면 Play 시작도 평면도를 바꿀 때와 같은 규칙: 그 평면도로 저장한 배치가 있으면
+    /// 기본 가구 대신 불러온다 (기본 가구 상태로 평면도를 바꿔 저장 파일이 덮어써지는 것을 막음). 테스트 씬(바꾸기 없음)은 늘 기본 가구.
+    /// Prefab 칸(FurnitureItem_Base)은 가구 메뉴·배치 불러오기가 박스 가구를 만들 때 쓴다 (BoxFurniture.ResolvePrefab).
     /// </summary>
     public class TestFurnitureSpawner : MonoBehaviour
     {
         struct Spec
         {
-            public CatalogItem Item;
+            public string ItemId;
             public Vector2 PlanMm;
             public float RotationY;
         }
 
-        [Tooltip("Assets/_Project/Prefabs/FurnitureItem_Base.prefab")]
+        [Tooltip("Assets/_Project/Prefabs/FurnitureItem_Base.prefab (박스 가구용. 가구 메뉴·배치 불러오기가 이 칸을 대신 쓴다)")]
         public FurnitureItem Prefab;
 
-        [Tooltip("켜면 Play 시작할 때 씬 평면도의 거실에 박스 가구 3개를 놓는다 (평면도마다 정해 둔 위치, 없으면 가장 넓은 바닥 가운데)")]
+        [Tooltip("켜면 Play 시작할 때 씬 평면도의 기본 가구를 놓는다 (평면도 바꾸기가 있고 저장한 배치가 있으면 그 배치)")]
         public bool SpawnOnStart = true;
 
         /// <summary>만든 가구</summary>
@@ -31,79 +36,79 @@ namespace Bangkku.Placement
 
         readonly List<FurnitureItem> _spawned = new();
 
-        static CatalogItem Box(string id, string name, int w, int d, int h, Confidence confidence, string color) => new()
-        {
-            Id = id,
-            Name = name,
-            Source = FurnitureSource.Box,
-            Size = new SizeMm { W = w, D = d, H = h },
-            SizeConfidence = confidence,
-            Color = color,
-        };
+        static Spec At(string itemId, float xMm, float yMm, float rotationY = 0f) =>
+            new() { ItemId = itemId, PlanMm = new Vector2(xMm, yMm), RotationY = rotationY };
 
-        static readonly CatalogItem Sofa = Box("sofa_01", "2인 소파", 1500, 800, 800, Confidence.Measured, "#7B9CC4");
-        static readonly CatalogItem Bed = Box("bed_01", "침대", 1100, 2000, 450, Confidence.Drawing, "#C49B7B");
-        static readonly CatalogItem Desk = Box("desk_01", "책상", 1200, 600, 740, Confidence.Estimated, "#9BC47B");
-
-        static Spec At(CatalogItem item, float xMm, float yMm, float rotationY = 0f) =>
-            new() { Item = item, PlanMm = new Vector2(xMm, yMm), RotationY = rotationY };
-
-        // 평면도 이름 → 가구 위치 (평면도 좌표 mm, 가구 바닥면 중앙). 벽·고정설비와 겹치지 않게 골라 둔 값
+        // 평면도 이름 → 기본 가구 (catalog id, 평면도 좌표 mm = 가구 바닥면 중앙, Y축 회전).
+        // 회전 0 = 정면이 평면도 위쪽, 90 = 오른쪽, 180 = 아래쪽. 90·270 이면 W 가 평면도 Y, D 가 평면도 X 방향.
+        // 벽 면(중심선 ± 두께/2)에 딱 붙인 값이라 벽 스냅과 같은 상태다
         static readonly Dictionary<string, Spec[]> Layouts = new()
         {
-            ["oneroom_01"] = new[] { At(Sofa, 1500, 5100), At(Bed, 2800, 4000), At(Desk, 1400, 3300) },
-            ["oneroom_02"] = new[] { At(Sofa, 1000, 6000), At(Bed, 3270, 6900), At(Desk, 1500, 3800) },
-            ["tworoom_01"] = new[] { At(Sofa, 2400, 7800), At(Bed, 625, 1150), At(Desk, 900, 5800) },
+            ["oneroom_02"] = new[]
+            {
+                // 침대 1700×2100: 오른쪽 벽(x 3825)·발코니 쪽 벽(y 7900)에 붙임 → x 2125~3825, y 5800~7900
+                At("bed_01", 2975, 6850, 0f),
+                // 책상 1100×670: 화장실 벽(y 3105)에 등을 대고 방 쪽을 봄 → x 2425~3525, y 3105~3775
+                At("desk_01", 2975, 3440, 180f),
+            },
+            ["tworoom_01"] = new[]
+            {
+                // 11-16 팀장이 Play 에서 놓은 배치를 벽에 붙여 기본값으로
+                // 침대: 머리판을 침실2 위쪽(창) 벽(y 150)에, 왼쪽 벽(x 75)에 붙임 → x 75~1775, y 150~2250
+                At("bed_01", 925, 1200, 180f),
+                // 소파: 거실 오른쪽 벽(x 4825)에 등을 대고 거실 쪽을 봄 → x 3895~4825, y 5770~8090
+                At("sofa_01", 4360, 6930, 270f),
+            },
         };
-
-        /// <summary>정해 둔 위치가 없는 평면도: 가장 넓은 바닥의 가운데에서 평면도 Y 방향으로 이 간격(mm)씩 늘어놓는다</summary>
-        const float FallbackSpacingMm = 1500f;
 
         void Start()
         {
-            if (SpawnOnStart) Spawn();
+            if (!SpawnOnStart) return;
+
+            // FurnitureFactory 는 OnEnable 에서 CatalogSpawner 를 등록하고 FloorPlanBuilder 는 Awake 에서 방을 만들므로 Start 에서는 둘 다 준비됨
+            var switcher = FloorPlanSwitcher.Instance;
+            if (switcher != null && switcher.LoadSavedLayout(out _)) return;
+            Spawn();
         }
 
-        /// <summary>이전에 만든 가구를 지우고 다시 만든다</summary>
-        public void Spawn()
+        /// <summary>이전에 만든 가구를 지우고 씬 평면도의 기본 가구를 다시 만든다. 만든 개수</summary>
+        public int Spawn()
         {
-            if (Prefab == null)
-            {
-                Debug.LogError("[방꾸] TestFurnitureSpawner: Prefab 칸에 FurnitureItem_Base 프리팹을 넣으세요.", this);
-                return;
-            }
-
             foreach (var old in _spawned)
                 if (old != null) Destroy(old.gameObject);
             _spawned.Clear();
 
             var builder = FindFirstObjectByType<FloorPlanBuilder>();
-            var plan = builder != null ? builder.Data : null;
-            string planName = plan?.Name ?? "(평면도 없음)";
-            foreach (var spec in GetLayout(plan))
-                _spawned.Add(Create(spec.Item, Units.PlanToWorld(spec.PlanMm.x, spec.PlanMm.y), spec.RotationY));
-
-            Debug.Log($"[방꾸] 테스트 박스 가구 {_spawned.Count}개를 만들었습니다 ({planName}).", this);
-        }
-
-        /// <summary>평면도에 맞는 가구 위치. 정해 둔 것이 없으면 가장 넓은 바닥 가운데에 늘어놓는다 (벽과 겹칠 수 있음)</summary>
-        Spec[] GetLayout(FloorPlanData plan)
-        {
-            if (plan?.Name != null && Layouts.TryGetValue(plan.Name, out var layout)) return layout;
-
-            var center = BoxFurniture.LargestFloorCenterMm(plan) ?? Vector2.zero;
-
-            Debug.LogWarning($"[방꾸] TestFurnitureSpawner: '{plan?.Name}' 평면도용 가구 위치가 없어 가장 넓은 바닥 가운데 {center} mm 에 늘어놓습니다. " +
-                             "Layouts 에 위치를 추가하세요.", this);
-            return new[]
+            string planName = builder != null && builder.Data != null ? builder.Data.Name : null;
+            if (planName == null || !Layouts.TryGetValue(planName, out var layout))
             {
-                At(Sofa, center.x, center.y - FallbackSpacingMm),
-                At(Bed, center.x, center.y),
-                At(Desk, center.x, center.y + FallbackSpacingMm),
-            };
-        }
+                Debug.Log($"[방꾸] {planName ?? "(평면도 없음)"} 평면도는 기본 가구가 없어 빈 방으로 시작합니다.", this);
+                return 0;
+            }
 
-        FurnitureItem Create(CatalogItem item, Vector3 position, float rotationY) =>
-            BoxFurniture.Create(Prefab, item, position, rotationY, transform);
+            var factory = FindAnyObjectByType<FurnitureFactory>();
+            if (factory == null)
+            {
+                // 테스트 씬(Test_Desktop 등)에는 팩토리가 없다. 경고 대신 알림만
+                Debug.Log("[방꾸] 기본 가구: 씬에 FurnitureFactory 가 없어 빈 방으로 시작합니다.", this);
+                return 0;
+            }
+
+            foreach (var spec in layout)
+            {
+                var item = factory.Create(spec.ItemId, spec.PlanMm, spec.RotationY);
+                if (item == null)
+                {
+                    Debug.LogWarning($"[방꾸] 기본 가구 {spec.ItemId} 를 만들지 못했습니다 (카탈로그에 없거나 프리팹 미연결).", this);
+                    continue;
+                }
+
+                item.transform.SetParent(transform, true);
+                _spawned.Add(item);
+            }
+
+            Debug.Log($"[방꾸] {planName} 기본 가구 {_spawned.Count}개를 놓았습니다.", this);
+            return _spawned.Count;
+        }
     }
 }

@@ -1,0 +1,183 @@
+{
+  "items": [
+    {
+      "id": "armchair_01",
+      "name": "팔걸이 의자",
+      "source": "scan",
+      "prefab": "Prefabs/Furniture/armchair_01",
+      "size": {
+        "w": 770,
+        "d": 880,
+        "h": 750
+      },
+      "sizeConfidence": "drawing",
+      "splatMeasuredSize": {
+        "w": 759,
+        "d": 817,
+        "h": 782
+      },
+      "fitError": 0.1227
+    },
+    {
+      "id": "bed_01",
+      "name": "침대",
+      "source": "scan",
+      "prefab": "Prefabs/Furniture/bed_01",
+      "size": {
+        "w": 1700,
+        "d": 2100,
+        "h": 1110
+      },
+      "sizeConfidence": "drawing",
+      "splatMeasuredSize": {
+        "w": 965,
+        "d": 1182,
+        "h": 621
+      },
+      "fitError": 0.0336
+    },
+    {
+      "id": "beige_stool_01",
+      "name": "토네브로 보조테이블",
+      "source": "scan",
+      "prefab": "Prefabs/Furniture/beige_stool_01",
+      "size": {
+        "w": 460,
+        "d": 460,
+        "h": 605
+      },
+      "sizeConfidence": "drawing",
+      "splatMeasuredSize": {
+        "w": 539,
+        "d": 535,
+        "h": 678
+      },
+      "fitError": 0.0965
+    },
+    {
+      "id": "desk_01",
+      "name": "산스베리 책상",
+      "source": "scan",
+      "prefab": "Prefabs/Furniture/desk_01",
+      "size": {
+        "w": 1100,
+        "d": 670,
+        "h": 730
+      },
+      "sizeConfidence": "drawing",
+      "splatMeasuredSize": {
+        "w": 903,
+        "d": 546,
+        "h": 563
+      },
+      "fitError": 0.0803
+    },
+    {
+      "id": "office_chair_01",
+      "name": "사무용 의자",
+      "source": "scan",
+      "prefab": "Prefabs/Furniture/office_chair_02",
+      "size": {
+        "w": 640,
+        "d": 640,
+        "h": 950
+      },
+      "sizeConfidence": "drawing",
+      "splatMeasuredSize": {
+        "w": 643,
+        "d": 632,
+        "h": 887
+      },
+      "fitError": 0.12
+    },
+    {
+      "id": "round_table_01",
+      "name": "낮은 원형 탁상",
+      "source": "scan",
+      "prefab": "Prefabs/Furniture/round_table_01",
+      "size": {
+        "w": 900,
+        "d": 900,
+        "h": 480
+      },
+      "sizeConfidence": "drawing",
+      "splatMeasuredSize": {
+        "w": 722,
+        "d": 728,
+        "h": 376
+      },
+      "fitError": 0.0948
+    },
+    {
+      "id": "round_table_02",
+      "name": "높은 원형 탁상",
+      "source": "scan",
+      "prefab": "Prefabs/Furniture/round_table_02",
+      "size": {
+        "w": 1050,
+        "d": 1050,
+        "h": 740
+      },
+      "sizeConfidence": "drawing",
+      "splatMeasuredSize": {
+        "w": 806,
+        "d": 805,
+        "h": 571
+      },
+      "fitError": 0.0681
+    },
+    {
+      "id": "shell_chair_01",
+      "name": "일체형 의자",
+      "source": "scan",
+      "prefab": "Prefabs/Furniture/shell_chair_01",
+      "size": {
+        "w": 460,
+        "d": 550,
+        "h": 940
+      },
+      "sizeConfidence": "drawing",
+      "splatMeasuredSize": {
+        "w": 405,
+        "d": 481,
+        "h": 832
+      },
+      "fitError": 0.0777
+    },
+    {
+      "id": "sofa_01",
+      "name": "3인용 소파",
+      "source": "scan",
+      "prefab": "Prefabs/Furniture/sofa_02",
+      "size": {
+        "w": 2320,
+        "d": 930,
+        "h": 910
+      },
+      "sizeConfidence": "drawing",
+      "splatMeasuredSize": {
+        "w": 1487,
+        "d": 618,
+        "h": 583
+      },
+      "fitError": 0.0744
+    },
+    {
+      "id": "standbyme_01",
+      "name": "스탠바이미",
+      "source": "scan",
+      "prefab": "Prefabs/Furniture/standbyme_01",
+      "size": {
+        "w": 914,
+        "d": 493,
+        "h": 1489
+      },
+      "sizeConfidence": "estimated",
+      "splatMeasuredSize": {
+        "w": 906,
+        "d": 437,
+        "h": 1452
+      }
+    }
+  ]
+}

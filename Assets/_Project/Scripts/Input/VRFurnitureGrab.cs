@@ -44,6 +44,9 @@ namespace Bangkku.Input
 
             /// <summary>스틱이 가운데로 돌아왔는지. 잡을 때 스틱이 이미 기울어져 있어도 바로 돌지 않도록 false 로 시작</summary>
             public bool StickArmed;
+
+            /// <summary>이 시각(unscaledTime)까지는 손·레이를 따라가지 않는다 (스틱으로 돌리는 동안·직후 제자리)</summary>
+            public float FreezeUntil;
         }
 
         [Tooltip("XR Origin (XR Rig) 루트. 비워 두면 씬에서 XR Origin 을 찾는다")]
@@ -65,6 +68,13 @@ namespace Bangkku.Input
 
         [Tooltip("스틱이 이 안으로 돌아와야 다음 회전")]
         [Range(0f, 0.9f)] public float StickReleaseThreshold = 0.3f;
+
+        [Tooltip("스틱을 이만큼 넘기는 동안과 놓은 뒤 RotateSettleSeconds 동안은 가구를 제자리에 둔다 " +
+                 "(엄지로 스틱을 밀 때 손이 흔들려 레이 끝의 가구가 끌려가지 않도록)")]
+        [Range(0f, 0.9f)] public float RotateHoldThreshold = 0.2f;
+
+        [Tooltip("스틱을 놓은 뒤 가구를 제자리에 두는 시간 (초)")]
+        public float RotateSettleSeconds = 0.3f;
 
         [Header("이동 잠금")]
         [Tooltip("켜면 가구를 잡는 동안 시점 회전·이동·텔레포트를 끈다 (스틱이 가구 회전과 겹치지 않도록)")]
@@ -231,7 +241,15 @@ namespace Bangkku.Input
                 // 두 손으로 서로 다른 가구를 잡았으면 마지막에 잡은(선택된) 가구만 움직인다
                 if (hold.Item != SelectionManager.Instance.Selected) continue;
 
-                HandleRotation(hold);
+                // 돌리는 동안은 제자리: 손·레이와 가구 사이 간격을 지금 위치로 다시 잡아 두고 옮기지 않는다.
+                // 스틱을 놓으면 그 자리에서부터 다시 손을 따라간다 (가구가 튀지 않음)
+                if (HandleRotation(hold)) hold.FreezeUntil = Time.unscaledTime + RotateSettleSeconds;
+                if (Time.unscaledTime < hold.FreezeUntil)
+                {
+                    Rebase(hold);
+                    continue;
+                }
+
                 if (TryGetTarget(hold, out var target)) SelectionManager.Instance.MoveSelectedTo(target);
             }
 
@@ -249,7 +267,8 @@ namespace Bangkku.Input
             return TryGetFarTarget(new Ray(hold.Pointer.position, hold.Pointer.forward), hold.PlaneY, hold.Offset, MaxRayDistance, out target);
         }
 
-        void HandleRotation(Hold hold)
+        /// <summary>잡은 손의 스틱 좌우로 돌린다. 스틱이 RotateHoldThreshold 넘게 기울어져 있으면 true (돌리는 중)</summary>
+        bool HandleRotation(Hold hold)
         {
             var stick = hold.Hand switch
             {
@@ -257,14 +276,32 @@ namespace Bangkku.Input
                 InteractorHandedness.Right => _rightStick,
                 _ => null,
             };
-            if (stick == null) return;
+            if (stick == null) return false;
 
-            int direction = StickStep(stick.ReadValue<Vector2>().x, ref hold.StickArmed, StickPressThreshold, StickReleaseThreshold);
-            if (direction == 0) return;
+            float x = stick.ReadValue<Vector2>().x;
+            int direction = StickStep(x, ref hold.StickArmed, StickPressThreshold, StickReleaseThreshold);
+            if (direction != 0)
+            {
+                var trigger = hold.Hand == InteractorHandedness.Left ? _leftTrigger : _rightTrigger;
+                float step = trigger.IsPressed() ? FineRotationDegrees : CoarseRotationDegrees;
+                SelectionManager.Instance.RotateSelected(direction * step);
+            }
 
-            var trigger = hold.Hand == InteractorHandedness.Left ? _leftTrigger : _rightTrigger;
-            float step = trigger.IsPressed() ? FineRotationDegrees : CoarseRotationDegrees;
-            SelectionManager.Instance.RotateSelected(direction * step);
+            return Mathf.Abs(x) > RotateHoldThreshold;
+        }
+
+        /// <summary>지금 손·레이 위치에서 가구가 그대로 있도록 간격(Offset)을 다시 잡는다</summary>
+        void Rebase(Hold hold)
+        {
+            var itemPosition = hold.Item.transform.position;
+            if (!hold.Far)
+            {
+                hold.Offset = Flat(itemPosition - hold.Pointer.position);
+                return;
+            }
+
+            var ray = new Ray(hold.Pointer.position, hold.Pointer.forward);
+            if (DesktopController.TryGetPlanePoint(ray, hold.PlaneY, out var point)) hold.Offset = Flat(itemPosition - point);
         }
 
         // ───────────── 이동 잠금 ─────────────

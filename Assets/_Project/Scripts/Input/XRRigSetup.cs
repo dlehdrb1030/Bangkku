@@ -6,7 +6,10 @@ using UnityEngine.XR;
 using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using UnityEngine.XR.Interaction.Toolkit.Interactors.Casters;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion.Movement;
 using UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation;
+using UnityEngine.XR.Interaction.Toolkit.Locomotion.Turning;
+using UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets;
 
 namespace Bangkku.Input
 {
@@ -19,6 +22,8 @@ namespace Bangkku.Input
     /// 3. 처음 한 번 XR Origin 을 현관문 안쪽에 놓고 방 안쪽을 보게 한다 (평면도에서 자동으로 찾음).
     /// 4. VR 기기 없이(XR Device Simulator) 실행하면 눈높이를 서 있는 성인 높이(기본 1.6m)로 맞춘다.
     /// 5. 바닥 밖으로 떨어지면(바닥보다 2m 아래) 시작 위치로 되돌린다.
+    /// 6. 오른쪽 스틱 회전을 부드러운 회전으로 바꾼다 (Starter Assets 기본은 45°씩 끊어 도는 스냅 회전).
+    ///    가구를 잡고 있는 동안에는 VRFurnitureGrab 이 회전 Provider 를 꺼서 스틱이 가구 회전에만 쓰인다.
     /// 씬 오브젝트 하나에 붙이고 Floor Plan 과 Origin 을 지정한다. 비워 두면 씬에서 찾는다.
     /// </summary>
     public class XRRigSetup : MonoBehaviour
@@ -56,11 +61,34 @@ namespace Bangkku.Input
                  "Starter Assets 기본값은 1.36 이라 앉은 눈높이처럼 가구가 크게 보인다")]
         public float SimulatorEyeHeightMeters = 1.6f;
 
+        [Header("이동")]
+        [Tooltip("왼쪽 스틱 이동 속도 (m/초). Starter Assets 기본값은 2.5. 11-16 Windows VR 시험 후 2/3 로 줄임 (빠를수록 멀미가 날 수 있음)")]
+        public float MoveSpeedMetersPerSecond = 1.67f;
+
+        [Header("회전")]
+        [Tooltip("켜면 오른쪽 스틱 좌우로 부드럽게 돈다. 끄면 Starter Assets 기본 스냅 회전(45°씩)")]
+        public bool SmoothTurn = true;
+
+        [Tooltip("부드러운 회전 속도 (도/초). 11-16 Windows VR 시험 후 90 → 60 (Starter Assets 기본값과 같음). 빠를수록 멀미가 날 수 있음")]
+        public float SmoothTurnDegreesPerSecond = 60f;
+
+        [Tooltip("켜면 오른쪽 스틱을 아래로 당겨 180° 돈다 (Starter Assets 기본 켬). 11-16 시험 후 끔")]
+        public bool TurnAround;
+
+        [Header("화질")]
+        [Tooltip("헤드셋 렌더 해상도 배율 (XRSettings.eyeTextureResolutionScale). 1 보다 크면 크게 그려 줄여 보내므로 " +
+                 "MSAA 없이도 벽 모서리·무늬가 돌 때 자글거리는 것이 줄어든다. 11-16: MSAA 는 3DGS 를 깨뜨려 대신 사용. " +
+                 "GPU 비용은 배율의 제곱 (1.3 → 약 1.7배), Windows VR 에서 72fps 를 확인하며 맞춘다. 1 이면 런타임 기본")]
+        [Range(1f, 2f)] public float EyeResolutionScale = 1.3f;
+
         [Header("떨어짐 복구")]
         [Tooltip("XR Origin 이 바닥보다 이만큼(m) 아래로 떨어지면 시작 위치로 되돌린다 (바닥 밖으로 나가 중력으로 떨어졌을 때). 0 이면 끔")]
         public float ResetBelowMeters = 2f;
 
         bool _moved;
+
+        /// <summary>시작 위치로 옮긴 평면도 이름. 평면도가 바뀌면(FloorPlanSwitcher) 새 평면도의 시작 위치로 다시 옮긴다</summary>
+        string _startedPlan;
 
         void OnEnable()
         {
@@ -75,7 +103,12 @@ namespace Bangkku.Input
 
         void Start()
         {
-            if (ApplySimulatorEyeHeight && ResolveOrigin()) SetSimulatorEyeHeight();
+            if (ResolveOrigin())
+            {
+                if (ApplySimulatorEyeHeight) SetSimulatorEyeHeight();
+                ApplyTurnMode();
+                ApplyResolutionScale();
+            }
 
             if (FloorPlan == null)
             {
@@ -104,7 +137,8 @@ namespace Bangkku.Input
             if (!ResolveOrigin()) return;
             AddRayLayers();
             AddTeleportAreas();
-            if (MoveToStart && !_moved) MoveOriginToStart();
+            // 같은 평면도를 다시 만들 때(Inspector 메뉴)는 그대로 두고, 다른 평면도로 바뀌면 새 현관으로 옮긴다
+            if (MoveToStart && (!_moved || _startedPlan != FloorPlan.Data?.Name)) MoveOriginToStart();
         }
 
         bool ResolveOrigin()
@@ -145,6 +179,55 @@ namespace Bangkku.Input
             position.y = SimulatorEyeHeightMeters;
             offset.localPosition = position;
             Debug.Log($"[방꾸] VR 기기가 없어 시뮬레이터 눈높이를 {SimulatorEyeHeightMeters:0.00}m 로 맞췄습니다.", this);
+        }
+
+        /// <summary>
+        /// 스틱 회전 방식을 정한다. Starter Assets 의 손마다 있는 ControllerInputActionManager 가 Turn(부드러운)·Snap Turn 입력 중 하나만 켠다.
+        /// 왼손은 이동(Smooth Motion)을 쓰므로 매니저가 왼손 회전 입력을 끄고, 실제로는 오른손만 바뀐다.
+        /// 회전 Provider(ContinuousTurnProvider·SnapTurnProvider)는 프리팹에서 둘 다 켜져 있고 입력만 바뀐다.
+        /// 같은 자리에서 180° 돌기(TurnAround)와 왼쪽 스틱 이동 속도(ContinuousMoveProvider)도 맞춘다.
+        /// </summary>
+        void ApplyTurnMode()
+        {
+            int managers = 0;
+            foreach (var manager in Origin.GetComponentsInChildren<ControllerInputActionManager>(true))
+            {
+                manager.smoothTurnEnabled = SmoothTurn;
+                managers++;
+            }
+
+            foreach (var provider in Origin.GetComponentsInChildren<ContinuousTurnProvider>(true))
+            {
+                provider.turnSpeed = SmoothTurnDegreesPerSecond;
+                provider.enableTurnAround = TurnAround;
+            }
+
+            foreach (var provider in Origin.GetComponentsInChildren<SnapTurnProvider>(true))
+                provider.enableTurnAround = TurnAround;
+
+            int movers = 0;
+            foreach (var provider in Origin.GetComponentsInChildren<ContinuousMoveProvider>(true))
+            {
+                provider.moveSpeed = MoveSpeedMetersPerSecond;
+                movers++;
+            }
+
+            if (managers == 0)
+                Debug.LogWarning("[방꾸] XRRigSetup: ControllerInputActionManager 가 없어 회전 방식을 바꾸지 못했습니다.", this);
+            else if (SmoothTurn)
+                Debug.Log($"[방꾸] 부드러운 회전 {SmoothTurnDegreesPerSecond:0}°/초, 180° 돌기 {(TurnAround ? "켬" : "끔")}, 이동 {MoveSpeedMetersPerSecond:0.##}m/초", this);
+
+            if (movers == 0)
+                Debug.LogWarning("[방꾸] XRRigSetup: ContinuousMoveProvider 가 없어 이동 속도를 바꾸지 못했습니다.", this);
+        }
+
+        /// <summary>헤드셋이 있을 때만 렌더 해상도 배율을 바꾼다 (시뮬레이터·데스크톱은 그대로)</summary>
+        void ApplyResolutionScale()
+        {
+            // OpenXR 은 시작 직후 XRSettings.isDeviceActive 가 false 일 수 있어 XR 로더 초기화까지 본다 (ModeSelector 와 같은 기준)
+            if (!ModeSelector.HeadsetConnected() || Mathf.Approximately(EyeResolutionScale, 1f)) return;
+            XRSettings.eyeTextureResolutionScale = EyeResolutionScale;
+            Debug.Log($"[방꾸] 헤드셋 렌더 해상도 배율 {EyeResolutionScale:0.##} ({XRSettings.eyeTextureWidth}×{XRSettings.eyeTextureHeight})", this);
         }
 
         void AddRayLayers()
@@ -229,6 +312,7 @@ namespace Bangkku.Input
             if (controller != null) controller.enabled = true;
 
             _moved = true;
+            _startedPlan = FloorPlan.Data?.Name;
         }
     }
 }
